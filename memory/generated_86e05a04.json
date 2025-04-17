@@ -1,0 +1,7 @@
+{
+  "content": "1. Topic Title: Python Essentials for Data Analysis\n   Project: Implement basic data analysis functions (e.g., mean, median, mode, sorting, etc.) using built-in Python libraries\n\n  2. Topic Title: Data Visualization with Matplotlib\n   Project: Create visualizations for a dataset using scatter plots, line charts, and bar graphs in Matplotlib\n\n  3. Topic Title: Data Manipulation with Pandas\n   Project: Refactor and manipulate the structure of data using Merge, Groupby, Pivot, and Filter functions\n\n  4. Topic Title: Intro to Statistics for Data Analysis\n   Project: Conduct statistical analysis on a dataset (e.g., calculate standard deviation, correlation)\n\n  5. Topic Title: Time Series Analysis\n   Project: Analyze time-based data and create trends using Pandas and Matplotlib\n\n  6. Topic Title: Data Cleaning and Preprocessing\n   Project: Clean a messy dataset by removing nulls, fixing types, and handling missing values\n\n  7. Topic Title: Machine Learning Basics\n   Project: Implement simple machine learning algorithms (e.g., linear regression) on a dataset and evaluate their performance\n\n  8. Topic Title: Final Project - Real-World Data Analysis\n   Project: Work on a real-world data analysis project, where you apply all the skills learned throughout the 8 weeks to analyze a dataset, visualize results, clean the data, and present your findings",
+  "metadata": {
+    "topic": "curriculum",
+    "type": "generated"
+  }
+}

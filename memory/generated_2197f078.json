@@ -1,0 +1,7 @@
+{
+  "content": "1. Week 1: Intro to Data Analysis & Statistics\n   Project: Explore statistical properties of a given dataset using SQL queries\n\n2. Week 2: Intermediate SQL\n   Project: Build complex SQL queries to manipulate and analyze a database schema\n\n3. Week 3: Data Visualization with Python (Matplotlib)\n   Project: Create multiple visualizations for a specific data analysis question\n\n4. Week 4: Data Visualization with Tableau/PowerBI (if time permits)\n   Project: Import the dataset from Week 2 and create interactive dashboards in either Tableau or Power BI\n\n5. Week 5: Machine Learning Fundamentals\n   Project: Build a simple machine learning model using scikit-learn for classification or regression\n\n6. Week 6: Advanced SQL Techniques & Performance Optimization\n   Project: Analyze performance issues in a complex query and optimize it\n\n7. Week 7: Data Storytelling and Communication\n   Project: Prepare a presentation summarizing the findings from one of your projects, focusing on clarity and impactful communication\n\n8. Week 8: Job Application Strategy & Portfolio Creation\n   Project: Create a personalized data analyst portfolio showcasing your skills and completed projects from the previous weeks, along with cover letters for potential job applications",
+  "metadata": {
+    "topic": "curriculum",
+    "type": "generated"
+  }
+}

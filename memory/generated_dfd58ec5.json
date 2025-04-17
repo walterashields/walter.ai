@@ -1,0 +1,7 @@
+{
+  "content": "1. Topic Title: Introduction to Data Analysis\n   Project: Exploratory Data Analysis (EDA) on a public dataset like Airbnb listings or IMDb movies\n\n  2. Topic Title: SQL Fundamentals\n   Project: Query a database and manipulate data using SQL by completing tasks in an online SQL tutorial like SQLBolt\n\n  3. Topic Title: Data Visualization Basics\n   Project: Create bar graphs, scatter plots, and histograms for the EDA dataset to visualize findings\n\n  4. Topic Title: Intermediate SQL (joins, aggregations, subqueries)\n   Project: Design a multi-table query to analyze relationships between datasets in an online practice platform like HackerRank\n\n  5. Topic Title: Python for Data Analysis\n   Project: Implement data manipulation tasks using Python libraries such as pandas and NumPy on the EDA dataset\n\n  6. Topic Title: Machine Learning Foundations\n   Project: Build a basic machine learning model (like linear regression) on the EDA dataset to make predictions\n\n  7. Topic Title: Feature Engineering\n   Project: Develop new features from existing ones in the EDA dataset that could improve predictive power of the machine learning model\n\n  8. Topic Title: Model Evaluation and Optimization\n   Project: Split the EDA dataset into training and testing sets, evaluate the model's performance, and optimize it by tuning hyperparameters",
+  "metadata": {
+    "topic": "curriculum",
+    "type": "generated"
+  }
+}

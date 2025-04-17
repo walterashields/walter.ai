@@ -1,0 +1,7 @@
+{
+  "content": "What they did well:\n- The learner has correctly used the SELECT statement which is the most fundamental command in SQL.\n- They have also correctly used the FROM clause to specify the table from which they want to retrieve data.\n\nCorrections or improvements:\n- The SQL statement is incomplete. The SELECT statement is used to select data from a database, and the data returned is stored in a result table. However, the learner has not specified what data they want to select. If they want to select all columns, they should use the asterisk (*) symbol after SELECT.\n- The correct SQL statement should be: SELECT * FROM Movie_Ratings;\n\nPro tips to go further:\n- To select specific columns from a table, you can list the column names after SELECT, separated by commas. For example: SELECT column1, column2 FROM table_name;\n- You can use the WHERE clause to filter records. For example: SELECT * FROM table_name WHERE condition;\n- To sort the result set in ascending or descending order, you can use the ORDER BY statement. For example: SELECT * FROM table_name ORDER BY column_name ASC|DESC;\n- You can use the DISTINCT keyword to return only distinct (different) values.\n- SQL functions like COUNT(), SUM(), AVG(), MAX(), MIN() can be used to perform calculations on the data. For example: SELECT COUNT(column_name) FROM table_name;",
+  "metadata": {
+    "topic": "Basic SQL SELECT Statements",
+    "type": "review"
+  }
+}

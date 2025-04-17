@@ -1,0 +1,7 @@
+{
+  "content": "1. SQL Fundamentals\n   Project: Query and manipulate a sample database using SQL commands like SELECT, JOIN, GROUP BY, and aggregation functions.\n\n  2. Advanced SQL (Subqueries, CTEs)\n   Project: Write complex queries using subqueries and common table expressions to answer multi-faceted questions from a large dataset.\n\n  3. Introduction to Python for Data Analysis\n   Project: Import data from a local or online source into Python and perform basic operations like filtering and sorting.\n\n  4. Data Munging with Pandas\n   Project: Clean, transform, reshape and aggregate data using Pandas data structures like Series, DataFrame, and merge/join functions.\n\n  5. Introduction to Data Visualization (Matplotlib)\n   Project: Create various types of plots (line, bar, scatter, etc.) to visualize trends in the data.\n\n  6. Advanced Data Visualization (Seaborn, Plotly)\n   Project: Compare and contrast different types of visualizations for the same dataset using Seaborn and Plotly libraries.\n\n  7. Introduction to SQL Alchemy\n   Project: Connect Python with databases using SQLAlchemy and perform CRUD operations on a sample table.\n\n  8. Data Analysis Case Study (using skills learned throughout the program)\n   Project: Use SQL, Python, and data visualization libraries to analyze and draw insights from a real-world dataset of your choice.",
+  "metadata": {
+    "topic": "curriculum",
+    "type": "generated"
+  }
+}
