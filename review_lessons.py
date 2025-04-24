@@ -5,6 +5,7 @@ from langchain_ollama import OllamaLLM
 from langchain.prompts import PromptTemplate
 from memory import get_completed_lessons, load_learner_profile, save_memory
 
+
 # === 1. Load Profile and Completed Lessons ===
 profile = load_learner_profile()
 completed = get_completed_lessons()

@@ -1,0 +1,20 @@
+# Topic: WHERE Clause and Filtering Data
+# Type: review
+
+Hello,
+
+Thank you for your submission. However, it seems like there might have been an error as your submission doesn't contain any information related to the WHERE clause and filtering data. 
+
+The WHERE clause is a very important tool in SQL as it allows you to filter the data you're querying. It's great for narrowing down your results to only those that meet certain conditions.
+
+Here are a few tips to improve:
+
+1. Try to practice writing SQL queries using the WHERE clause to filter data. For example, if you have a table of employees, you could write a query to only show employees who have a salary above a certain amount.
+
+2. Remember that you can use logical operators like AND, OR, and NOT in your WHERE clause to combine or exclude certain conditions.
+
+Pro Tips:
+- Always remember to use single quotes around text when using the WHERE clause. For example: WHERE name = 'John'.
+- You can use the LIKE operator in the WHERE clause to search for a specified pattern in a column.
+
+Please try again and submit your work related to the WHERE clause and filtering data. I'm sure you'll do great! Keep practicing and don't hesitate to ask if you have any questions. Happy learning!

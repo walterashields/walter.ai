@@ -1,0 +1,14 @@
+# Topic: Handling Data with Pandas
+# Type: review
+
+Hi there,
+
+Thank you for your submission, but it seems like there might have been a misunderstanding. The submission you provided, "this is a test", doesn't provide any information about your understanding or experience with handling data using Pandas. 
+
+For a reflection challenge, we're looking for your thoughts on the lesson. You could talk about what you found interesting, what was challenging, or how you think you'll use what you've learned. 
+
+For example, you could reflect on how you found the process of importing data with Pandas, manipulating dataframes, or visualizing data. 
+
+Pro Tip: Reflection is a crucial part of the learning process. It helps you to consolidate your understanding and identify areas where you might need more practice. 
+
+Please resubmit your reflection and I look forward to hearing about your learning experience! Keep going, you're doing great!

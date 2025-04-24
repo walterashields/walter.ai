@@ -1,5 +1,24 @@
 import streamlit as st
 import re
+import os
+
+
+# ✅ Set page config early
+st.set_page_config(page_title="📘 Lesson Viewer", layout="wide")
+
+# ✅ Hide the default sidebar multipage navigation
+st.markdown("""
+    <style>
+    section[data-testid="stSidebarNav"] {
+        display: none !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+
+from langchain_openai import ChatOpenAI
+from langchain.prompts import PromptTemplate
+
 from memory import (
     load_learner_profile,
     save_learner_profile,
@@ -7,10 +26,174 @@ from memory import (
     mark_lesson_complete,
     get_completed_lessons
 )
-from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
+
+
+# Check if profile loaded
+# === User Login Guard ===
+if "username" not in st.session_state or not st.session_state["username"]:
+    st.warning("⚠️ Please sign in first.")
+    st.stop()
+
+# === Sanitize username and define paths ===
+def safe_username(raw_username):
+    return raw_username.replace("@", "_at_").replace(".", "_dot_")
+
+raw_username = st.session_state["username"]
+username = safe_username(raw_username)
+memory_folder = f"walter_memory/{username}"
+profile_path = f"{memory_folder}/{username}_profile.json"
+
+os.makedirs(memory_folder, exist_ok=True)
+
+
+# === Setup learner profile and memory path
+def safe_username(raw_username):
+    return raw_username.replace("@", "_at_").replace(".", "_dot_")
+
+raw_username = st.session_state.get("username")
+username = safe_username(raw_username)
+memory_folder = f"walter_memory/{username}"
+profile_path = f"{memory_folder}/{username}_profile.json"
+os.makedirs(memory_folder, exist_ok=True)
+
+profile = load_learner_profile(profile_path)
+if not profile:
+    st.error("⚠️ No learner profile found. Please return to the main app and complete onboarding.")
+    st.stop()
+
+
+
+
+# === Sanitize username for filesystem usage ===
+def safe_username(raw_username):
+    return raw_username.replace("@", "_at_").replace(".", "_dot_")
+
+# === Set up user memory path and profile ===
+raw_username = st.session_state["username"]
+username = safe_username(raw_username)
+memory_folder = f"walter_memory/{username}"
+profile_path = f"{memory_folder}/{username}_profile.json"
+
+os.makedirs(memory_folder, exist_ok=True)
+
+
+
+# 🛠 Fallback fix for empty lesson list
+if "track_lessons" in profile and st.session_state["track_selected"] in profile["track_lessons"]:
+
+    track_selected = st.session_state.get("track_selected")
+
+    if track_selected not in profile.get("tracks", {}):
+        st.error(f"⚠️ The track '{track_selected}' was not found in your profile. Please restart from the dashboard.")
+        st.stop()
+
+    lessons = profile["tracks"][track_selected]
+    
+    if not profile["track_lessons"][st.session_state["track_selected"]]:
+        profile["track_lessons"][st.session_state["track_selected"]] = [None] * len(lessons)
+        save_learner_profile(profile, profile_path)
+
+
+# === Ensure track_selected and lesson_topic are present in session ===
+if "track_selected" not in st.session_state or not st.session_state["track_selected"]:
+    first_track = next(iter(profile.get("tracks", {})), None)
+    if first_track:
+        st.session_state["track_selected"] = first_track
+
+if "lesson_topic" not in st.session_state or not st.session_state["lesson_topic"]:
+    current_track = st.session_state.get("track_selected")
+    lessons = profile.get("tracks", {}).get(current_track, [])
+    if lessons:
+        st.session_state["lesson_topic"] = lessons[0]
+
+
+# ✅ Ensure track_lessons structure is valid and initialized
+track_selected = st.session_state.get("track_selected")
+
+if "track_lessons" not in profile:
+    profile["track_lessons"] = {}
+
+if track_selected not in profile["track_lessons"]:
+    num_lessons = len(profile.get("tracks", {}).get(track_selected, []))
+    profile["track_lessons"][track_selected] = [None] * num_lessons
+    save_learner_profile(profile, profile_path)
+    st.info(f"🛠 Initialized lesson slots for track: '{track_selected}'")
+
+
+
+
+
+# ✅ Auto-recover track_selected if it's missing but lesson_topic exists
+if not st.session_state.get("track_selected") and st.session_state.get("lesson_topic") and profile:
+    lesson = st.session_state["lesson_topic"]
+    for track_name, lessons in profile.get("tracks", {}).items():
+        if lesson in lessons:
+            st.session_state["track_selected"] = track_name
+            break
+
+track_selected = st.session_state.get("track_selected")
+
+if not profile:
+    st.error("⚠️ Could not load learner profile. Please return to the main app and start your learning path again.")
+    st.stop()
+
+# === Recover missing track from topic ===
+if "track_selected" not in st.session_state or not st.session_state["track_selected"]:
+    topic = st.session_state.get("lesson_topic")
+    if profile and topic and "tracks" in profile:
+        for tname, lessons in profile["tracks"].items():
+            if topic in lessons:
+                st.session_state["track_selected"] = tname
+                break
+
+# === Final variable assignments ===
+track_selected = st.session_state.get("track_selected")
+topic = st.session_state.get("lesson_topic")
+
+# === Validate track presence in profile ===
+if not track_selected or track_selected not in profile.get("tracks", {}):
+    st.warning("⚠️ No track selected. Please return to the main app and launch a track.")
+    st.stop()
 
 # === UI Setup ===
+
+
+# 🔙 Back to Dashboard button (only on lesson page)
+if st.sidebar.button("🔙 Back to Dashboard"):
+    st.switch_page("app.py")
+
+
+# === Sidebar: Full Track & Lesson Navigation ===
+st.sidebar.title("📚 Your Lessons")
+
+completed = get_completed_lessons(memory_folder)
+current_lesson = st.session_state.get("lesson_topic")
+
+def lesson_status_icon(lesson):
+    if lesson == current_lesson:
+        return "📍"
+    elif lesson in completed:
+        return "✅"
+    else:
+        return "⏳"
+
+# Render all tracks and their lessons
+for track_title, lessons in profile["tracks"].items():
+    st.sidebar.markdown(f'<div class="lesson-group"><strong>{track_title}</strong>', unsafe_allow_html=True)
+    for idx, lesson in enumerate(lessons):
+        label = f"{lesson_status_icon(lesson)} Lesson {idx + 1}: {lesson}"
+        if st.sidebar.button(label, key=f"{track_title}_{lesson}_sidebar"):
+            # Reset input-related session keys when navigating via sidebar
+            for key in ["code_input", "feedback", "mcq_answer", "generic_challenge_input", "code_answer"]:
+                st.session_state.pop(key, None)
+
+            st.session_state["lesson_generated"] = False
+            st.session_state["lesson_topic"] = lesson
+            st.session_state["track_selected"] = track_title
+            st.rerun()
+    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+
+
 st.markdown("""
 <style>
 section.main > div { padding-top: 1rem !important; }
@@ -30,73 +213,91 @@ button[kind="secondary"] {
 </style>
 """, unsafe_allow_html=True)
 
-# === Load learner profile ===
-profile = load_learner_profile()
+# === Shared Lesson Launch Function ===
+def launch_lesson(lesson_title, track_title):
+    st.session_state["lesson_topic"] = lesson_title
+    st.session_state["track_selected"] = track_title
+    st.switch_page("pages/_lesson_runner.py")
+
+# ✅ Reset session if previous track_selected no longer exists
+if "track_selected" in st.session_state:
+    if st.session_state["track_selected"] not in profile["tracks"]:
+        st.session_state["track_selected"] = list(profile["tracks"].keys())[0]
+
+# ✅ Same for lesson_topic
+if "lesson_topic" in st.session_state:
+    all_lessons = [lesson for lessons in profile["tracks"].values() for lesson in lessons]
+    if st.session_state["lesson_topic"] not in all_lessons:
+        st.session_state["lesson_topic"] = all_lessons[0]
+
 if not profile or "tracks" not in profile or "track_lessons" not in profile:
     st.warning("⚠️ Incomplete profile. Please regenerate your curriculum from the main app.")
     st.stop()
 
-# === Select current track ===
-track_selected = st.session_state.get("track_selected")
-if not track_selected or track_selected not in profile["tracks"]:
-    st.warning("⚠️ No track selected. Please return to the main app and launch a track.")
+# === Extract Topics and Lessons for Current Track ===
+topics = profile["tracks"].get(track_selected, [])
+lesson_blocks = profile.get("track_lessons", {}).get(track_selected, [])
+
+if not lesson_blocks or not isinstance(lesson_blocks, list):
+    st.error("⚠️ This track has no lessons yet. Please return to the main app and regenerate the curriculum.")
     st.stop()
 
-# Include all lessons from all tracks for sidebar navigation
-topics = [lesson for lessons in profile["tracks"].values() for lesson in lessons]
-lesson_blocks = profile["track_lessons"][track_selected]
+try:
+    lesson_index = topics.index(st.session_state["lesson_topic"])
+except ValueError:
+    st.error("⚠️ Current lesson not found in track. Please return to the dashboard.")
+    st.stop()
 
-# === Generate the Current Lesson Only if Missing ===
-lesson_index = profile["tracks"][track_selected].index(st.session_state["lesson_topic"])
+# === Generate the lesson only if missing or empty string
+lesson_raw = lesson_blocks[lesson_index] if lesson_index < len(lesson_blocks) else None
 
-# === Load vector store and retrieve context for lesson ===
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
+if lesson_raw is None or lesson_raw.strip() == "":
 
-import os
-
-# Build rich query
-track = profile.get("track", "")
-comfort = profile.get("comfort_level", "beginner")
-role = profile.get("current_role", "")
-topic = st.session_state.get("lesson_topic", "")
-
-query_string = f"{track} | {comfort} | {role} | {topic}"
-
-# Load prioritized file list
-prioritized_path = "vector_store_openai/prioritized_files.txt"
-prioritized_files = set()
-if os.path.exists(prioritized_path):
-    with open(prioritized_path, "r") as f:
-        prioritized_files = set(line.strip() for line in f if line.strip())
-
-# Vector store retrieval
-retriever = Chroma(
-    persist_directory="vector_store_openai",
-    embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002")
-).as_retriever(search_kwargs={"k": 15})
-
-all_docs = retriever.get_relevant_documents(query_string)
-
-# Re-rank: prioritize documents from curated GitHub files
-ranked_docs = sorted(
-    all_docs,
-    key=lambda doc: 0 if doc.metadata.get("source") in prioritized_files else 1
-)
-
-retrieved_docs = ranked_docs[:6]
-retrieved_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
-
-
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import PromptTemplate
-
-if lesson_blocks[lesson_index] is None:
     with st.spinner(f"🛠 Generating content for lesson: '{st.session_state['lesson_topic']}'"):
 
+        # === Load vector store and retrieve context for lesson ===
+        from langchain_community.vectorstores import Chroma
+        from langchain_openai import OpenAIEmbeddings
+
         import os
+
+        # Build rich query
+        track = profile.get("track", "")
+        comfort = profile.get("comfort_level", "beginner")
+        role = profile.get("current_role", "")
+        topic = st.session_state.get("lesson_topic", "")
+
+        query_string = f"{track} | {comfort} | {role} | {topic}"
+
+        # Load prioritized file list
+        prioritized_path = "vector_store_openai/prioritized_files.txt"
+        prioritized_files = set()
+        if os.path.exists(prioritized_path):
+            with open(prioritized_path, "r") as f:
+                prioritized_files = set(line.strip() for line in f if line.strip())
+
+        # Vector store retrieval
+        retriever = Chroma(
+            persist_directory="vector_store_openai",
+            embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002")
+        ).as_retriever(search_kwargs={"k": 15})
+
+        all_docs = retriever.get_relevant_documents(query_string)
+
+        # Re-rank: prioritize documents from curated GitHub files
+        ranked_docs = sorted(
+            all_docs,
+            key=lambda doc: 0 if doc.metadata.get("source") in prioritized_files else 1
+        )
+
+        retrieved_docs = ranked_docs[:6]
+        retrieved_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
+
+        from langchain.chat_models import ChatOpenAI
+        from langchain.prompts import PromptTemplate
+
+
+        # import os
 
         # Rebuild query with learner context
         track = profile.get("track", "")
@@ -129,101 +330,124 @@ if lesson_blocks[lesson_index] is None:
         retrieved_docs = ranked_docs[:6]
         retrieved_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
 
-
         lesson_template = PromptTemplate(
-            input_variables=["track", "lesson", "retrieved_context"],
+            input_variables=[
+                "track", "lesson", "lesson_index", "total_lessons",
+                "previous_lesson", "next_lesson", "retrieved_context"
+            ],
             template="""
-        You're an expert instructional designer creating a markdown-formatted data science lesson for a self-paced course. This lesson is part of the **{track}** track and focuses on the topic: **{lesson}**.
+        You are a senior curriculum developer writing a world-class technical lesson in markdown format. 
+        This is **Lesson {lesson_index} of {total_lessons}** in the **{track}** learning track. The topic is: **{lesson}**.
 
-        🧭 Your task is to write the lesson in the same format and quality as the [Data Science for Beginners GitHub curriculum](https://github.com/microsoft/Data-Science-For-Beginners). Use ONLY the trusted context provided. Do NOT invent content not grounded in that context.
+        The previous lesson was: "{previous_lesson}"  
+        The next lesson will be: "{next_lesson}"
 
-        ---
-
-        📘 **REFERENCE CONTEXT**  
+        📘 Use only the following trusted reference materials:
         {retrieved_context}
 
         ---
 
-        📘 **Lesson Structure and Guidelines**
+        🛠️ FORMAT AND INSTRUCTIONS:
 
-        ### ✅ Format your output like this:
+        Your output must follow the format **exactly as shown below**, using only markdown (no HTML).
+
+        ✅ Writing Guidelines (Must Follow):
+        - Each concept explanation must be 2–4 paragraphs written in beginner friendly full sentences (avoid bullet lists).
+        - Align each sub-concept to at least one learning objective from above.
+        - After any SQL or code example, include a properly formatted markdown **output table** showing example results.
+        - Follow the output with a clear, full-sentence explanation of what each line of code does. Highlight important terms using **bold**.
+        
+        Match the tone, structure, and clarity of the Microsoft "Data Science for Beginners" GitHub curriculum:  
+        https://github.com/microsoft/Data-Science-For-Beginners
 
         ---
 
-        # 📘 Lesson Title  
-        Write a short, clear, and inviting title that aligns with the topic (but don't repeat it word-for-word).
-
+        # 📖 **{lesson}**
+        
         ---
 
-        ## 🎯 Learning Objectives  
-        Start with a short list (3–5) of specific, outcome-driven objectives.  
-        Use Bloom’s action verbs like: *define, explain, compare, analyze, build*.
+        ## 🌟 Learning Objectives  
+        List 3–4 measurable outcomes using Bloom’s action verbs like: define, apply, analyze, compare, create, specifically relevent to the lesson topic {lesson}. Use bullet points.  
+        ⚠️ Make sure that each Learning Objective is explicitly addressed within the lesson content.
 
         ---
 
         ## 💡 Introduction  
-        Provide a short and clear explanation of why this topic matters, connecting it to the learner’s real-world context or future applications.  
-        Use plain language and examples that make abstract ideas relatable.
+        Explain why this topic matters. Use a real-world analogy or relatable beginner-friendly scenario.  
+        Keep this section to 2–3 short paragraphs in a clear, accessible tone.
 
         ---
 
         ## 📊 Core Concepts  
-        Break the lesson into **clearly labeled sections** for each concept or technique.  
-        Each section should include:
 
-        - 📚 Concept explanation (2–4 paragraphs)
-        - 💻 Code examples (with output if relevant)
-        - 📊 Visual aids or tables where applicable
-        - 📌 Use analogies or real-world case studies if available
+        Break this section into the same number and topic subsections as there are Leaning Objectives listed above. They should progress sequentially in a smooth logical order. Each one should include:
 
-        Use **markdown formatting** consistently. For example:
-        - `### Understanding Structured vs Unstructured Data`
-        - `**Syntax Example**:` followed by a code block
-        - Use `<dl><dt><dd>` for definition lists where helpful
+        ### 📚 Sub-Concept Title  
+        - 3–5 clear paragraphs that sufficiently explain the concept in plain, student-friendly language  
+        - A multi-line code block (e.g., ```sql or ```python) using proper formatting and indentation  
+        - A markdown output table (if applicable) shown below the code  
+        - A **clear explanation written in 3-4 full sentences** (not bullet points). Emphasize important keywords in bold or italics.  
+        - A 💡 **Pro Tip** section for common beginner mistakes or misunderstandings — also written in full sentences
 
-        ---
+        💻 Example:
+        ```sql
+        SELECT 
+            Product_Name, 
+            SUM(Amount) AS Total_Sales
+        FROM 
+            Movies_Transactions
+        GROUP BY 
+            Product_Name;
+        ```
+        -A supporting table that illustrates the output of code example
+        📊 Sample Output:
+        Product_Name	Total_Sales
+        Monty Python	$45.00
+        Gone With the Wind	$30.00
 
-        ## 🔍 Scenario or Walkthrough  
-        Include a practical scenario that brings all core ideas together.  
-        This can be a guided example or short project-style walkthrough.
+        🧠 Explanation:
+        This SQL query retrieves each product name from the database and calculates the total sales amount using the SUM() function.
+        The results are grouped by product name, so each row shows the total for one movie title.
 
-        ---
+        💡 Pro Tip:
+        Always use GROUP BY when applying aggregate functions like SUM() or AVG() to prevent unexpected results.
 
-        ## 🧪 Challenge  
-        List 1–2 hands-on tasks learners should complete based on the lesson.  
-        These should be grounded in the material just covered.
+        🔍 Scenario or Walkthrough
+        Show a realistic scenario where the learner applies 2–3 concepts from above. Walk through a mini real-world problem with input and output.
 
-        - Task 1: _(Short instruction or question)_
-        - Task 2: _(Optional second challenge)_
+        Multi-line code block
 
-        ---
+        Output table (if applicable)
 
-        ## ✅ Self-Check  
-        Provide a checklist or quiz with 3–5 items. Use multiple choice or yes/no checks to help learners assess their own understanding.
+        Clear explanation in sentence form
 
-        ---
+        ✅ Self-Check Quiz
+        Write 3–5 short questions to help the learner reflect. Use a mix of multiple choice and true/false.
+        ⚠️ Do not include the answers.
 
-        ## 🧠 Teaching Notes  
-        This section is for instructors.
+        
+        ## 🧑‍💼 Your Turn to Try
+        Your Turn to Try
+        Give one challenge that is a slight variation of something shown earlier in the lesson. Keep it simple and beginner-appropriate.
 
-        - Point out common misconceptions
-        - Suggest analogies or teaching strategies
-        - Recommend optional follow-up topics
-        - Do not repeat content or summarize here
+        💻 Example: Modify the previous query to calculate the average sales amount per product.
+        
+        🚫 DO NOT INCLUDE:
 
-        ---
+        HTML tags like <dl>, <dt>, <dd>
 
-        ### ❌ Do NOT include:
-        - Motivational filler text like “Congratulations!”
-        - External references like “see notebook.ipynb”
-        - Generic sections like "Conclusion" or "Summary"
-        - The word “Objective:” as a prefix to section titles
+        Any “Teaching Notes” section
 
-        ---
+        Generic checklists like “✅ Did I use correct syntax?”
 
-        🔚 When you're ready, generate the complete markdown-formatted lesson content using this structure, voice, and reference context only.
-        """
-        )
+        Repeated “Challenge” or “Enter your solution” labels
+
+        Motivational filler like “Nice job!”
+
+        External references like “See notebook.ipynb”
+
+        Now generate the full markdown lesson using only the context and structure above. """ )
+
 
 
         llm = ChatOpenAI(model="gpt-4", temperature=0.7)
@@ -239,6 +463,10 @@ if lesson_blocks[lesson_index] is None:
             response = (lesson_template | llm).invoke({
                 "track": track_selected,
                 "lesson": st.session_state["lesson_topic"],
+                "lesson_index": lesson_index,
+                "total_lessons": len(topics),
+                "previous_lesson": topics[lesson_index - 1] if lesson_index > 0 else "",
+                "next_lesson": topics[lesson_index + 1] if lesson_index < len(topics) - 1 else "",
                 "retrieved_context": retrieved_context
             })
 
@@ -250,84 +478,137 @@ if lesson_blocks[lesson_index] is None:
 
 
         profile["track_lessons"][track_selected][lesson_index] = content
-        save_learner_profile(profile)
+        save_learner_profile(profile, profile_path)
         lesson_blocks = profile["track_lessons"][track_selected]
 
 
-if not topics or not lesson_blocks:
-    st.warning("⚠️ No topics or lessons found for the selected track.")
-    st.stop()
+        if not topics or not lesson_blocks:
+            st.warning("⚠️ No topics or lessons found for the selected track.")
+            st.stop()
 
-completed = get_completed_lessons()
+        completed = get_completed_lessons(memory_folder)
 
-# === Determine current topic ===
-if "lesson_topic" not in st.session_state or not st.session_state["lesson_topic"]:
-    fallback = profile.get("current_topic")
-    st.session_state["lesson_topic"] = fallback if fallback in topics else topics[0]
+        # === Determine current topic ===
+        if "lesson_topic" not in st.session_state or not st.session_state["lesson_topic"]:
+            fallback = profile.get("current_topic")
+            st.session_state["lesson_topic"] = fallback if fallback in topics else topics[0]
 
-current_topic = st.session_state["lesson_topic"]
+        current_topic = st.session_state["lesson_topic"]
 
-if current_topic not in topics:
-    st.warning("⚠️ Invalid topic loaded. Please return to the main app.")
-    st.stop()
+        if current_topic not in topics:
+            st.warning("⚠️ Invalid topic loaded. Please return to the main app.")
+            st.stop()
 
-profile["current_topic"] = current_topic
-save_learner_profile(profile)
+        profile["current_topic"] = current_topic
+        save_learner_profile(profile, profile_path)
 
-# === Sidebar Progress ===
-st.sidebar.title("📊 Your Progress")
-st.sidebar.markdown(f"**👤 Name:** {profile.get('name', 'Anonymous')}")
-st.sidebar.markdown(f"**Track:** {track_selected}")
+        if st.sidebar.button("🏠 Back to Dashboard"):
+            st.switch_page("app.py")
 
-# Reload lessons only for the current track
-topics = profile["tracks"][track_selected]
-lesson_blocks = profile["track_lessons"][track_selected]
+        # === Sidebar Progress ===
+        st.sidebar.title("📊 Your Progress")
+        # === Log Out Button ===
+        if st.sidebar.button("🚪 Log Out"):
+            st.session_state.pop("username", None)
+            st.session_state.clear()
+            st.rerun()
 
-completed = get_completed_lessons()
-completed_in_track = [t for t in topics if t in completed]
-upcoming_in_track = [t for t in topics if t not in completed and t != current_topic]
 
-st.sidebar.markdown(f"**Completed:** {len(completed_in_track)} / {len(topics)}")
+        st.sidebar.markdown(f"**👤 Name:** {profile.get('name', 'Anonymous')}")
+        st.sidebar.markdown(f"**Track:** {track_selected}")
 
-# === Sidebar Navigation ===
-def show_topic_section(label, items, class_name):
-    if items:
-        st.sidebar.markdown(f'<div class="lesson-group"><strong>{label}</strong>', unsafe_allow_html=True)
-        for t in items:
-            try:
-                idx = topics.index(t) + 1
-            except ValueError:
-                idx = "?"
-            if st.sidebar.button(f"{idx}. {t}", key=f"{label}_{idx}"):
-                st.session_state["lesson_topic"] = t
-                st.session_state["track_selected"] = track_selected  # stay within the same track
+        # Reload lessons only for the current track
+        topics = profile["tracks"][track_selected]
+        lesson_blocks = profile["track_lessons"][track_selected]
+
+        completed = get_completed_lessons(memory_folder)
+        completed_in_track = [t for t in topics if t in completed]
+        upcoming_in_track = [t for t in topics if t not in completed and t != current_topic]
+
+        st.sidebar.markdown(f"**Completed:** {len(completed_in_track)} / {len(topics)}")
+
+        # === Sidebar Navigation ===
+        def show_topic_section(label, items, class_name):
+            if items:
+                st.sidebar.markdown(f'<div class="lesson-group"><strong>{label}</strong>', unsafe_allow_html=True)
+                for t in items:
+                    try:
+                        idx = topics.index(t) + 1
+                    except ValueError:
+                        idx = "?"
+                    if st.sidebar.button(f"{idx}. {t}", key=f"{label}_{idx}"):
+                        st.session_state["lesson_topic"] = t
+                        st.session_state["track_selected"] = track_selected  # stay within the same track
+                        st.rerun()
+                st.sidebar.markdown("</div>", unsafe_allow_html=True)
+
+        show_topic_section("📍 Current Lesson", [current_topic], "current")
+        show_topic_section("⏭️ Upcoming Lessons", upcoming_in_track, "upcoming")
+        show_topic_section("✅ Completed Lessons", completed_in_track, "completed")
+
+
+
+        # === Detect lesson change and force rerun
+        if "last_loaded_topic" in st.session_state:
+            if st.session_state["lesson_topic"] != st.session_state["last_loaded_topic"]:
+                st.session_state["lesson_generated"] = False
+                st.session_state["code_input"] = ""
+                st.session_state["feedback"] = ""
+                st.session_state["mcq_answer"] = ""
+                st.session_state["generic_challenge_input"] = ""
+                st.session_state["code_answer"] = ""
                 st.rerun()
-        st.sidebar.markdown("</div>", unsafe_allow_html=True)
-
-show_topic_section("📍 Current Lesson", [current_topic], "current")
-show_topic_section("⏭️ Upcoming Lessons", upcoming_in_track, "upcoming")
-show_topic_section("✅ Completed Lessons", completed_in_track, "completed")
 
 
+        # 🧠 Track current topic
+        st.session_state["last_loaded_topic"] = st.session_state["lesson_topic"]
 
-# === Load Lesson ===
+
+
+
+        # === Load Lesson ===
+        lesson_index = topics.index(current_topic)
+
+        # 🔄 Reload lesson content for selected topic
+        lesson_blocks = profile["track_lessons"].get(track_selected, [])
+        lesson_content = lesson_blocks[lesson_index] if lesson_index < len(lesson_blocks) else ""
+
+
+
+
+
+        if not lesson_content:
+            st.error("⚠️ Could not load the selected lesson.")
+            st.stop()
+
+
+        # === Final Lesson Display Block (Always Render) ===
+        lesson_index = topics.index(current_topic)
+        lesson_blocks = profile.get("track_lessons", {}).get(track_selected, [])
+        lesson_content = lesson_blocks[lesson_index] if lesson_index < len(lesson_blocks) else ""
+
+
+# === FINAL Lesson Content Display Block (Always Render on Rerun) ===
+current_topic = st.session_state.get("lesson_topic")
 lesson_index = topics.index(current_topic)
+lesson_blocks = profile.get("track_lessons", {}).get(track_selected, [])
 lesson_content = lesson_blocks[lesson_index] if lesson_index < len(lesson_blocks) else ""
 
-if not lesson_content:
-    st.error("⚠️ Could not load the selected lesson.")
-    st.stop()
 
-st.title("📘 Lesson In Progress")
-st.subheader(f"🎯 Topic: {current_topic}")
-st.markdown(lesson_content)
+if isinstance(lesson_content, str) and len(lesson_content.strip()) > 0:
+    st.markdown(lesson_content, unsafe_allow_html=True)
+    st.markdown("""
+        <script>
+            setTimeout(function() {
+                window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            }, 100);
+        </script>
+    """, unsafe_allow_html=True)
 
-# === Code Submission ===
-if "code_input" not in st.session_state or not st.session_state.get("lesson_generated", False):
-    st.session_state["code_input"] = ""
-    st.session_state["lesson_generated"] = True
-
-st.markdown("## 🧑‍💻 Your Turn to Try")
+        # === Code Submission ===
+    if "code_input" not in st.session_state or not st.session_state.get("lesson_generated", False):
+        st.session_state["code_input"] = ""
+        st.session_state["lesson_generated"] = True
 
 # --- Dynamic Challenge Parsing ---
 # We assume that the generated lesson_content includes an optional challenge section
@@ -354,21 +635,32 @@ if "CODE CHALLENGE:" in lesson_content:
     parts = lesson_content.split("CODE CHALLENGE:")
     challenge_code = parts[1].strip()
 
+
 # --- Display Challenge Inputs (if present) ---
 if challenge_mcq:
     st.markdown("### Multiple-Choice / Short Answer Challenge")
     st.info(challenge_mcq)
-    mcq_answer = st.text_input("Enter your answer for the above challenge:")
+    st.text_input("Enter your answer for the above challenge:", key="mcq_answer")
+    mcq_answer = st.session_state.get("mcq_answer", "")
+
 
 if challenge_code:
     st.markdown("### Code Challenge")
     st.info(challenge_code)
-    code_answer = st.text_area("Enter your solution code below:", height=300)
+    st.text_area("Enter your solution code below:", height=300, key="code_answer")
+    code_answer = st.session_state.get("code_answer", "")
 
-# If neither marker exists, default to a generic text input challenge.
+
+# If neither marker exists, use fallback challenge block
 if not challenge_mcq and not challenge_code:
-    st.markdown("### Challenge")
-    generic_answer = st.text_area("Enter your solution or answer below:", height=300)
+    default_prompt = (
+        "Take your best shot—there’s no such thing as a wrong answer here. "
+        "Submit at least once to mark this lesson complete!"
+    )
+    st.text_area(default_prompt, key="generic_challenge_input", height=250)
+    generic_answer = st.session_state.get("generic_challenge_input", "")
+
+
 
 # --- Submission Handling ---
 # We'll use one submission button that gathers the responses.
@@ -381,67 +673,88 @@ if challenge_code:
 if not challenge_mcq and not challenge_code:
     user_response["generic"] = generic_answer
 
-# Disable the submit button if no response is provided.
-response_provided = any([user_response.get("mcq", "").strip(), user_response.get("code", "").strip(), user_response.get("generic", "").strip()])
 
-if st.button("📤 Submit Answer for Review", disabled=not response_provided):
-    with st.spinner("🧠 Reviewing your submission..."):
-        # For review, create a unified prompt that references both parts if applicable.
-        review_prompt = """
-You're a friendly and skilled coach. A learner just submitted an answer for the challenge.
-If a code solution was provided, review the code. If a text answer (MCQ or short answer) was provided, review that.
-Provide:
-- What they did well.
-- Any corrections or improvements.
-- Pro tips to enhance their solution.
+response_provided = any([
+    user_response.get("mcq", None),
+    user_response.get("code", None),
+    user_response.get("generic", None)
+]) and any([
+    bool(user_response.get("mcq", "").strip()),
+    bool(user_response.get("code", "").strip()),
+    bool(user_response.get("generic", "").strip())
+])
 
-Include distinct sections if both types were provided.
+submit_clicked = st.button("📤 Submit Answer for Review")
+
+if submit_clicked:
+    if not response_provided:
+        st.error("⚠️ You must attempt the challenge to receive a code review and mark the lesson as complete.")
+        st.stop()
+    else:
+        with st.spinner("🧠 Reviewing your submission..."):
+            llm = ChatOpenAI(model="gpt-4", temperature=0.3)
+
+            # Identify which challenge type was submitted
+            if challenge_code:
+                submitted_type = "Code"
+                learner_response = user_response["code"]
+                challenge_text = challenge_code
+            elif challenge_mcq:
+                submitted_type = "MCQ"
+                learner_response = user_response["mcq"]
+                challenge_text = challenge_mcq
+            else:
+                submitted_type = "Reflection"
+                learner_response = user_response["generic"]
+                challenge_text = "Open-ended reflection challenge from the lesson."
+
+            feedback_prompt = PromptTemplate(
+                input_variables=["topic", "submitted_type", "challenge_text", "learner_response"],
+                template="""
+You are a helpful, beginner-friendly coach reviewing a learner's submission in a data training lesson.
+
+🎯 Topic: {topic}  
+📌 Challenge Type: {submitted_type}  
+🧠 Challenge Instructions:  
+{challenge_text}
+
+📩 Learner's Submission:  
+{learner_response}
+
+Please provide constructive, supportive feedback tailored to this exact challenge. Your feedback must:
+- Focus ONLY on the actual challenge (don’t reference other formats like JOINs if they weren’t part of it)
+- Mention what they did well
+- Suggest improvements
+- Share 1–2 beginner-friendly pro tips
+
+Be clear and concise. Encourage continued learning.
 """
-        # Use ChatOpenAI for the review, assuming it's imported and configured.
-        llm = ChatOpenAI(model="gpt-4", temperature=0.3)
-        # Create a combined response string for review.
-        combined_response = ""
-        if "mcq" in user_response:
-            combined_response += "MCQ Answer:\n" + user_response["mcq"] + "\n\n"
-        if "code" in user_response:
-            combined_response += "Code Answer:\n" + user_response["code"] + "\n\n"
-        if "generic" in user_response:
-            combined_response += "Answer:\n" + user_response["generic"] + "\n\n"
-        
-        # Generate feedback based on the combined response.
-        feedback_prompt = PromptTemplate(
-            input_variables=["topic", "submitted_response"],
-            template="""
-You're a friendly and skilled code coach. A learner just completed a challenge for: "{topic}"
+            )
 
-Here is their submission:
-{submitted_response}
+            review_chain = feedback_prompt | llm
+            response = review_chain.invoke({
+                "topic": current_topic,
+                "submitted_type": submitted_type,
+                "challenge_text": challenge_text,
+                "learner_response": learner_response
+            })
 
-Please review it with:
-- What they did well.
-- Any corrections or improvements.
-- Pro tips to go further.
-"""
-        )
-        review_chain = feedback_prompt | llm
-        response = review_chain.invoke({
-            "topic": current_topic,
-            "submitted_response": combined_response
-        })
-        feedback = response.content if hasattr(response, "content") else str(response)
+            feedback = response.content if hasattr(response, "content") else str(response)
+            if not feedback:
+                feedback = "⚠️ No feedback could be generated. Please try again or check your input."
 
+            save_memory(feedback, {"topic": current_topic, "type": "review"}, memory_folder)
+            st.success("✅ Submission reviewed! See feedback below:")
+            st.markdown(feedback)
 
-        save_memory(feedback, {"topic": current_topic, "type": "review"})
-        st.success("✅ Submission reviewed! See feedback below:")
-        st.markdown(feedback)
+            # ✅ Mark lesson complete
+            mark_lesson_complete(current_topic, memory_folder)
+            completed = get_completed_lessons(memory_folder)
 
-        # Mark lesson complete after review
-        mark_lesson_complete(current_topic)
-        completed = get_completed_lessons()
-
-    st.divider()
-    st.markdown("## ✅ Lesson Complete")
-    st.success(f"You've completed: {current_topic}")
+        st.divider()
+        st.markdown("## ✅ Lesson Complete")
+        st.success(f"You've completed: {current_topic}")
+        completed = get_completed_lessons(memory_folder)
 
 
 # === Progress Navigation ===
@@ -450,8 +763,10 @@ if remaining:
     next_lesson = remaining[0]
     st.info(f"➡️ Up Next: {next_lesson}")
     if st.button("🚀 Go to Next Lesson"):
-        st.session_state.pop("code_input", None)
-        st.session_state.pop("feedback", None)
+        # 🔄 Reset all challenge-related session keys
+        for key in ["code_input", "feedback", "mcq_answer", "generic_challenge_input", "code_answer"]:
+            st.session_state.pop(key, None)
+
         st.session_state["lesson_generated"] = False
         st.session_state["lesson_topic"] = next_lesson
         st.rerun()

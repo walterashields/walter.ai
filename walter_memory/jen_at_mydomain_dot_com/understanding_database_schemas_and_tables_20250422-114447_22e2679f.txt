@@ -1,0 +1,19 @@
+# Topic: Understanding Database Schemas and Tables
+# Type: review
+
+👋 Hi there! 
+
+I appreciate your effort in submitting your answer. However, it seems there's been a misunderstanding. The challenge is about "Understanding Database Schemas and Tables", but your answer "test" doesn't seem to address the topic.
+
+👍 What they did well:
+- You've taken the first step in submitting your answer. That's a good start!
+
+👎 What could be improved:
+- Your answer should be related to the topic. In this case, you should provide an explanation or example related to database schemas and tables.
+
+💡 Pro tips:
+- A database schema is like a blueprint that outlines how data is organized and accessed. Tables, on the other hand, are structures within the database that hold the data.
+- When you're asked to explain a concept, try to break it down into its simplest form. You could start by defining what a database schema and a table are, then explain how they interact with each other.
+- Practice makes perfect. Try to create your own database schema and tables, then explain what each part does. This will help you understand the concept better.
+
+Keep practicing and don't hesitate to ask for help if you need it. You're doing great!

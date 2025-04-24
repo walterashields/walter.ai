@@ -1,0 +1,14 @@
+# Topic: Understanding Database Schemas and Tables
+# Type: review
+
+Great job on completing the challenge! Here's my feedback:
+
+- What they did well:
+Your SQL syntax is correct and you've demonstrated understanding of the SELECT statement and WHERE clause. You've also correctly used the FROM clause to specify the table you're selecting from.
+
+- What could be improved:
+Since the challenge is about understanding database schemas and tables, it would have been great to see more complexity in your SQL query. For example, you could have joined tables or selected specific columns instead of using the wildcard (*). 
+
+- Beginner-friendly pro tips:
+1. Remember that using 'SELECT *' can be inefficient if you're working with large databases because it retrieves all columns from the table. If you only need certain columns, specify them in your SELECT statement to improve performance.
+2. Understanding how to join tables is a crucial skill when working with databases. Practice using INNER JOIN, LEFT JOIN, RIGHT JOIN, and FULL JOIN to combine rows from two or more tables based on a related column between them.

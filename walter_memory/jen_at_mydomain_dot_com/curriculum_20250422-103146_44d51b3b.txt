@@ -1,0 +1,64 @@
+# Topic: curriculum
+# Type: generated
+
+Track: SQL Fundamentals for Data Scientists
+    - Lesson 1: Introduction to Relational Databases and SQL
+    - Lesson 2: Understanding Database Schemas and Tables
+    - Lesson 3: Basic SQL SELECT Statements and Clauses
+    - Lesson 4: WHERE Clause and Filtering Data
+    - Lesson 5: JOIN Operations: INNER, LEFT, RIGHT, OUTER JOINS
+    - Lesson 6: Group By and Having Clauses for Aggregating Data
+    - Lesson 7: Subqueries and Nested Queries
+    - Lesson 8: Creating, Altering, and Deleting Tables
+    - Lesson 9: Advanced SQL Functions (Date, String, Numeric)
+    - Lesson 10: Optimizing SQL Performance
+
+   Track: Python for Data Analysis
+    - Lesson 1: Introduction to Python and NumPy
+    - Lesson 2: Handling Data with Pandas
+    - Lesson 3: Manipulating Data in Pandas
+    - Lesson 4: Merging, Joining, and Concatenating DataFrames
+    - Lesson 5: Data Cleaning Techniques with Pandas
+    - Lesson 6: Introduction to Data Visualization with Matplotlib
+    - Lesson 7: Building Line Charts, Bar Charts, and Histograms
+    - Lesson 8: Creating Customizing Plots using Matplotlib
+
+   Track: Statistics for Data Scientists
+    - Lesson 1: Introduction to Probability Distributions
+    - Lesson 2: Measures of Central Tendency: Mean, Median, Mode
+    - Lesson 3: Measures of Dispersion: Range, Variance, Standard Deviation
+    - Lesson 4: Hypothesis Testing and Confidence Intervals
+    - Lesson 5: Correlation Analysis and Pearson's Coefficient
+    - Lesson 6: Regression Analysis: Simple and Multiple Linear Regression
+    - Lesson 7: Exploratory Data Analysis (EDA) Techniques
+    - Lesson 8: Machine Learning Foundations: Supervised Learning Algorithms
+
+   Track: Introduction to Machine Learning with Scikit-Learn
+    - Lesson 1: Supervised Learning: Classification and Regression
+    - Lesson 2: Feature Extraction Techniques
+    - Lesson 3: Preprocessing Data for Machine Learning Models
+    - Lesson 4: Evaluating Model Performance with Cross-Validation and Confusion Matrix
+    - Lesson 5: Ensemble Methods: Random Forests, Gradient Boosting
+    - Lesson 6: Dimensionality Reduction: Principal Component Analysis (PCA)
+    - Lesson 7: Unsupervised Learning Algorithms: K-Means Clustering
+    - Lesson 8: Putting it All Together: Building a Machine Learning Project
+
+   Track: Data Wrangling with Python Libraries
+    - Lesson 1: Web Scraping with Beautiful Soup and Scrapy
+    - Lesson 2: Working with APIs using Requests and Pandas
+    - Lesson 3: Handling Missing Values in Data
+    - Lesson 4: Dealing with Outliers in Data Analysis
+    - Lesson 5: Text Mining and Natural Language Processing (NLP) with NLTK
+    - Lesson 6: Time Series Analysis using Pandas
+    - Lesson 7: Geospatial Data Analysis with GeoPandas
+    - Lesson 8: Advanced Topics in Data Wrangling
+
+   Track: Introduction to Big Data and Apache Hadoop
+    - Lesson 1: Distributed Systems and MapReduce Concepts
+    - Lesson 2: Installing and Configuring Hadoop Cluster
+    - Lesson 3: Working with HDFS (Hadoop Distributed File System)
+    - Lesson 4: Writing Hadoop MapReduce Programs in Java
+    - Lesson 5: Introduction to Pig for Data Processing
+    - Lesson 6: Spark Basics and Resilient Distributed Datasets (RDDs)
+    - Lesson 7: Using PySpark for Big Data Analysis
+    - Lesson 8: Big Data Ecosystem: HBase, Cassandra, Kafka, Storm

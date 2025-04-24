@@ -1,0 +1,7 @@
+{
+  "content": "\ud83d\udc4b Hi there!\n\nGreat job on completing the challenge! Here's my feedback:\n\n- What they did well:\n  You've correctly used the SELECT statement to retrieve all data from the ACTION table. Your SQL syntax is correct and you've formatted your query neatly, which makes it easy to read.\n\n- What could be improved:\n  While your SQL query is correct, it's hard to provide more specific feedback without knowing the exact challenge requirements. In a real-world scenario, it's important to be selective about the data you're retrieving to optimize performance. If you don't need all columns, specify only the ones you need.\n\n- Pro tips:\n  1. Commenting your SQL code can be very helpful, especially when working on complex queries or when other people need to understand your code. You can add a comment by using '--' for single line comments or '/* */' for multiple lines.\n  \n  2. Always remember to close your database connection after you're done with your operations. This is a good practice to prevent any unwanted changes and to free up resources.\n\nKeep up the good work and happy coding!",
+  "metadata": {
+    "topic": "Introduction to Relational Databases and Database Management Systems (RDBMS)",
+    "type": "review"
+  }
+}

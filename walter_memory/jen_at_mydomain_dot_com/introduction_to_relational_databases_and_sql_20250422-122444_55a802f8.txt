@@ -1,0 +1,18 @@
+# Topic: Introduction to Relational Databases and SQL
+# Type: review
+
+👍 What you did well: 
+
+You've done a great job using the SELECT statement to choose the data you want to view. Your use of SUM function to calculate the total quantity and total amount is also commendable. The JOIN clause is correctly used to combine rows from two or more tables based on a related column between them. 
+
+🎯 Suggestions for improvement: 
+
+Your query is almost perfect, but there's one small issue. You're grouping by `Customers.CustomerID`, but you're selecting `Customers.Name`. This could potentially lead to incorrect results if two customers have the same name but different IDs. To avoid any confusion, it would be better to group by `Customers.Name` or select `Customers.CustomerID` instead.
+
+💡 Pro tips:
+
+1. Always ensure that the column you're grouping by is the same as the one you're selecting. This will help you avoid any potential confusion or errors in your results.
+
+2. Remember to use aliases for your tables when your queries start to get complex. This will make your SQL code easier to read and understand.
+
+Keep up the good work and continue practicing SQL queries. You're doing great!

@@ -1,0 +1,19 @@
+# Topic: Basic SQL SELECT Statements and Clauses
+# Type: review
+
+Hi there,
+
+Thank you for your submission. However, it appears that you may have misunderstood the challenge as your submission only contains the word "test". 
+
+In this challenge, you're expected to reflect on your understanding of basic SQL SELECT statements and clauses. This could be in the form of explaining a concept you learned, discussing a difficulty you encountered and how you overcame it, or sharing an interesting insight you gained.
+
+Improvements:
+- Try to provide a detailed reflection on what you've learned about SQL SELECT statements and clauses. 
+- Discuss any challenges you faced and how you overcame them.
+- Share any interesting insights or discoveries you made during the lesson.
+
+Pro Tips:
+1. When writing SQL statements, it's a good practice to write keywords in uppercase (e.g., SELECT, FROM, WHERE) to make your code easier to read.
+2. Remember that SQL is not case sensitive. However, the text within quotes in a WHERE clause is case sensitive.
+
+Keep up the good work and don't hesitate to ask if you have any questions. Happy learning!

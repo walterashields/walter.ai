@@ -1,0 +1,7 @@
+{
+  "content": "\ud83d\udcdd Review:\n\nHello! It seems like you're just getting started with SQL, which is great. However, your current submission is incomplete. \n\nWhat you did well:\n- You've started off with the correct keyword \"SELECT\", which is used to select data from a database.\n\nWhat could be improved:\n- The \"SELECT\" statement is incomplete. It needs to specify which columns you want to select and from which table. For example, if you have a table named \"Students\" and you want to select all columns, your SQL statement would look like this: \"SELECT * FROM Students;\"\n\nBeginner-friendly pro tips:\n- Always remember to specify the table you're selecting from using the \"FROM\" keyword.\n- If you want to select all columns from a table, you can use the asterisk (*) symbol instead of listing all the column names.\n- Don't forget to end your SQL statements with a semicolon (;). It's used to separate SQL queries.\n\nKeep practicing and you'll get the hang of it in no time!",
+  "metadata": {
+    "topic": "Introduction to Relational Databases and SQL",
+    "type": "review"
+  }
+}

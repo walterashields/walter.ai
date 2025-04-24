@@ -1,0 +1,16 @@
+# Topic: Understanding Database Schemas and Tables
+# Type: review
+
+Hi there,
+
+Great job on your effort to understand database schemas and tables. You've written a basic SQL statement to select all records from the BOOKS table, which is a good start.
+
+However, this challenge is about understanding database schemas and tables. While your SQL statement is correct, it doesn't reflect your understanding of the database schema or the structure of the tables. 
+
+To improve, try to describe the structure of the BOOKS table. What columns does it have? What are their data types? What are the relationships between this table and others in the database? 
+
+Pro Tip 1: A database schema is like a blueprint of a database. It outlines how data is organized and how different tables relate to each other.
+
+Pro Tip 2: Understanding the database schema is crucial before writing SQL queries. It helps you to know what data is available and how to access it efficiently.
+
+Keep going, you're on the right track!

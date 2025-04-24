@@ -1,0 +1,65 @@
+# Topic: curriculum
+# Type: generated
+
+ Track: Introduction to Data Analysis
+    - Lesson 1: Understanding Data and its Importance in Decision Making
+    - Lesson 2: Overview of Data Analyst Role and Responsibilities
+    - Lesson 3: Essential Tools for Data Analysis
+    - Lesson 4: Excel Basics for Data Analysis
+
+   Track: SQL Foundations
+    - Lesson 1: Introduction to Relational Databases
+    - Lesson 2: Basic SQL SELECT Statements
+    - Lesson 3: Filtering and Sorting Records with WHERE Clause
+    - Lesson 4: JOIN Operators for Combining Tables
+    - Lesson 5: Aggregate Functions (COUNT, AVG, SUM, MIN, MAX)
+    - Lesson 6: Working with NULL Values and Conditional Logic (CASE WHEN)
+    - Lesson 7: Subqueries for Nested Data Analysis
+    - Lesson 8: Advanced SQL Techniques (UNION, DISTINCT)
+    - Lesson 9: Optimizing SQL Performance
+    - Lesson 10: Aggregations and GROUP BY Clauses
+
+   Track: Python Fundamentals for Data Analysis
+    - Lesson 1: Introduction to Python
+    - Lesson 2: Variables, Constants, and Operators
+    - Lesson 3: Control Structures (IF, ELSE, FOR, WHILE)
+    - Lesson 4: Data Types and Collections (Lists, Tuples, Dictionaries)
+    - Lesson 5: Functions and Modules
+    - Lesson 6: File Input/Output Operations
+    - Lesson 7: Working with Libraries (NumPy, Pandas)
+
+   Track: Data Cleaning with Pandas
+    - Lesson 1: Importing and Exploring Data with Pandas
+    - Lesson 2: Handling Missing Values and Errors
+    - Lesson 3: Renaming Columns, Rearranging Data, and Merging Datasets
+    - Lesson 4: Grouping and Aggregating Data
+    - Lesson 5: Reshaping and Pivoting Data
+    - Lesson 6: Handling Duplicates and Outliers in Data
+    - Lesson 7: Advanced Data Cleaning Techniques (Text Normalization, Time Series Analysis)
+
+   Track: Data Visualization with Python
+    - Lesson 1: Intro to Matplotlib and Line Charts
+    - Lesson 2: Bar Charts, Histograms, and Box Plots
+    - Lesson 3: Scatter Plots and Heatmaps
+    - Lesson 4: Area Charts and Stacked Bar Charts
+    - Lesson 5: Pie Charts and Donut Charts
+    - Lesson 6: Mapping with Folium and GeoPandas
+    - Lesson 7: Building Interactive Dashboards (Plotly Dash)
+
+   Track: Data Modeling and Exploratory Analysis
+    - Lesson 1: Introduction to Statistical Concepts
+    - Lesson 2: Descriptive Statistics
+    - Lesson 3: Probability Distributions
+    - Lesson 4: Hypothesis Testing and Confidence Intervals
+    - Lesson 5: Correlation and Regression Analysis
+    - Lesson 6: Exploratory Data Analysis (EDA) Techniques
+    - Lesson 7: Clustering, Segmentation, and Association Rule Mining
+
+   Track: Data Wrangling and Preparation for Machine Learning
+    - Lesson 1: Feature Engineering and Selection
+    - Lesson 2: Handling Imbalanced Classes
+    - Lesson 3: Normalization and Standardization Techniques
+    - Lesson 4: Time Series Analysis and Forecasting
+    - Lesson 5: Dimensionality Reduction (PCA, t-SNE)
+    - Lesson 6: Missing Values Strategies (Imputation, Regression Imputation, etc.)
+    - Lesson 7: Cross-Validation and Hyperparameter Tuning

@@ -53,4 +53,4 @@ if st.button("📤 Export Recap to Text File"):
 
 # === Back to Lesson Link ===
 if st.button("🔙 Back to Lesson"):
-    st.switch_page("pages/_lesson_runner.py")
+    st.switch_page("_pages/_lesson_runner.py")

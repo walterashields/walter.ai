@@ -1,11 +1,19 @@
 import os
 import shutil
 import streamlit as st
-<<<<<<< HEAD
+import streamlit.components.v1 as components
 import re
+import urllib.parse
 
-=======
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
+# === Shared Lesson Launch Function (Global) ===
+def launch_lesson(lesson_title, track_title):
+    print(f"▶️ LAUNCHING {lesson_title} in {track_title}")  # Optional debug
+    st.session_state["lesson_topic"] = lesson_title
+    st.session_state["track_selected"] = track_title
+    st.switch_page("pages/_lesson_runner.py")
+
+
+
 from memory import (
     load_learner_profile as load_profile,
     save_learner_profile as save_profile,
@@ -13,29 +21,159 @@ from memory import (
     get_completed_lessons,
     mark_lesson_complete
 )
-from langchain_ollama import OllamaLLM
+from langchain_community.llms import Ollama
 from langchain.prompts import PromptTemplate
 from datetime import datetime
-<<<<<<< HEAD
 from dotenv import load_dotenv
 
+
+# List of approved beta users
+USER_DB = {
+    "walterashields@gmail.com": "test123",
+    "jen@mydomain.com": "jenpass",
+    "betauser@site.com": "tryme"
+}
+
+
+# ✅ Load environment variables
 load_dotenv()
 
+# === STEP 1: Login Logic ===
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-=======
-import re
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
+if not st.session_state.logged_in:
+    st.markdown("""
+        <h1 style='margin-top: 0; padding-top: 0; font-size: 2.4rem;'>Welcome to WALTER.AI</h1>
+        <p style='margin-top: -0.5rem;'>Please log in to continue</p>
+    """, unsafe_allow_html=True)
 
-# Setup
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Log In"):
+        if username in USER_DB and password == USER_DB[username]:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.rerun()
+        else:
+            st.error("Invalid username or password.")
+    st.stop()  # 👈 Stop execution if not logged in
+
+# Sanitize username to match _lesson_runner.py format
+def safe_username(raw_username):
+    return raw_username.replace("@", "_at_").replace(".", "_dot_")
+
+username = safe_username(st.session_state["username"])
+memory_folder = f"walter_memory/{username}"
+profile_path = f"{memory_folder}/{username}_profile.json"
+
+os.makedirs(memory_folder, exist_ok=True)
+
+st.session_state["memory_folder"] = memory_folder
+st.session_state["profile_path"] = profile_path
+
+# ✅ Setup Streamlit page config
 st.set_page_config(page_title="📊 Learning Dashboard", layout="wide")
 
-# Reduce top padding of main content
 st.markdown("""
 <style>
-section.main > div { padding-top: 1rem !important; }
-.block-container { padding-top: 1rem !important; }
+div[data-testid="stSidebar"] button {
+    width: 95% !important;
+    font-size: 0.88rem !important;
+    padding: 0.4rem 0.6rem !important;
+    margin-bottom: 0.25rem !important;
+}
 </style>
 """, unsafe_allow_html=True)
+
+
+
+st.markdown("""
+<style>
+.lesson-group {
+    background-color: #f5f7fa;
+    border-radius: 10px;
+    padding: 0.8rem;
+    margin-bottom: 1rem;
+}
+button[kind="secondary"] {
+    width: 100% !important;
+    text-align: left !important;
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+
+st.markdown("""
+<style>
+header[data-testid="stHeader"] {
+    visibility: hidden;
+    height: 0;
+}
+section[data-testid="stSidebarNav"] {
+    display: none !important;
+}
+section.main > div:first-child,
+.block-container {
+    padding-top: 0rem !important;
+    margin-top: 0rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+
+
+
+# 🔧 Enable JS-to-Python postMessage event handling
+st.markdown("""
+<script>
+window.addEventListener("message", (event) => {
+    const msg = event.data;
+    if (msg && msg.isStreamlitMessage && msg.type === "streamlit:setComponentValue") {
+        window.parent.postMessage({
+            isStreamlitMessage: true,
+            type: "streamlit:setComponentValue",
+            key: msg.key,
+            value: msg.value
+        }, "*");
+    }
+});
+</script>
+""", unsafe_allow_html=True)
+
+
+st.markdown("""
+<style>
+.scroll-list {
+    max-height: 120px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+.scroll-list p {
+    margin: 0.2rem 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+
+st.markdown("""
+<style>
+div[data-testid="stButton"] > button {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.6rem;
+    margin-bottom: 0.3rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 
 
 # CSS for sidebar containers and button styling
@@ -56,19 +194,81 @@ button[kind="secondary"] {
 </style>
 """, unsafe_allow_html=True)
 
-profile_path = "learner_profile.json"
-memory_folder = "walter_memory"
-llm = OllamaLLM(model="mistral")
+st.markdown("""
+<style>
+.small-button-container button {
+    font-size: 0.82rem !important;
+    padding: 0.3rem 0.6rem;
+    margin-bottom: 0.3rem;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# Load or initialize learner profile
-profile = load_profile()
+# Make dropdown scrollable
+st.markdown("""
+<style>
+.scrollable-dropdown {
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+.small-button-container button {
+    font-size: 0.85rem !important;
+    padding: 0.25rem 0.5rem !important;
+    margin-bottom: 0.3rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+
+# Ensure a user is logged in
+# if "username" not in st.session_state:
+#     st.session_state.clear()
+#    st.rerun()
+
+
+
+# === Load or create the learner profile
+if os.path.exists(profile_path):
+    profile = load_profile(profile_path)
+else:
+    profile = None  # Triggers onboarding if profile doesn't exist
+
+
+
+# ✅ Fallback: Auto-assign track and lesson if missing from session state
+if "track_selected" not in st.session_state or not st.session_state["track_selected"]:
+    if profile and "tracks" in profile:
+        first_track = next(iter(profile["tracks"]), None)
+        if first_track:
+            st.session_state["track_selected"] = first_track
+
+
+
+if "lesson_topic" not in st.session_state or not st.session_state["lesson_topic"]:
+    selected_track = st.session_state.get("track_selected")
+    if selected_track and selected_track in profile["tracks"]:
+        lessons_in_track = profile["tracks"][selected_track]
+        if lessons_in_track:
+            st.session_state["lesson_topic"] = lessons_in_track[0]
+
+
+# Save both paths to session state for reuse
+st.session_state["memory_folder"] = memory_folder
+st.session_state["profile_path"] = profile_path
+
+
+# Load LLM
+llm = Ollama(model="mistral")
+
+
 
 # === 1. New User Flow ===
 if not profile:
-    st.title("👋 Welcome to WALTER.AI")
+    st.title("👋🏾 Welcome to WALTER.AI")
     st.markdown("Let’s build your personalized learning path in data. Answer a few questions to begin.")
 
-<<<<<<< HEAD
     # === Tabs for Onboarding ===
     tab1, tab2, tab3 = st.tabs(["👤 About You", "🧠 Learning Preferences", "🎯 Time & Goals"])
 
@@ -113,260 +313,217 @@ if not profile:
 
     st.markdown("### 📋 When you're ready, build your custom learning path:")
 
-    submit_button = st.button("🚀 Generate My Curriculum", disabled=not required_fields_filled or st.session_state["submitted_curriculum"])
+    submit_button = st.button("🚀 Generate My Curriculum")
 
     if submit_button:
-        st.session_state["submitted_curriculum"] = True
-
-    if submit_button:
-        st.write("🧠 Creating your custom curriculum...")
-
-        prompt_template = PromptTemplate(
-            input_variables=[
-                "track", "motivation", "tools_used", "goal_3mo",
-                "preferred_style", "weekly_time", "comfort_level", "current_role"
-            ],
-            template="""
-        You are an expert curriculum designer creating a highly personalized, job-ready learning path for a new data learner.
-
-        Your inspiration comes from:
-        - Google Data Analytics Certificate (for Analysts)
-        - IBM Data Science Certificate (for Scientists)
-        - Udacity Data Engineering Nanodegree (for Engineers)
-
-        🎯 Learner Profile:
-        - Desired Track: {track}
-        - Motivation: {motivation}
-        - Current Role: {current_role}
-        - Comfort Level: {comfort_level}
-        - Tools Experience: {tools_used}
-        - Weekly Time Available: {weekly_time}
-        - Preferred Learning Style: {preferred_style}
-        - 3-Month Goal: {goal_3mo}
-
-        🧩 Your Task:
-        Create a curriculum made up of multiple **Tracks** (e.g. "SQL Foundations", "Data Cleaning with Pandas", etc.). Each Track must include:
-        - A Track Title
-        - A list of 8–12 progressively scaffolded lesson titles
-
-        🛠️ Format (Output exactly like this):
-        Track: SQL Foundations  
-        - Lesson 1: Introduction to Relational Databases  
-        - Lesson 2: Basic SQL SELECT Statements  
-        ...  
-        - Lesson 10: Aggregations and GROUP BY Clauses
-
-        Track: Data Visualization with Python  
-        - Lesson 1: Intro to Matplotlib and Line Charts  
-        ...  
-        - Lesson 8: Building Interactive Dashboards
-
-        📏 Rules:
-        - Use only plain text (no bullet points or markdown)
-        - Do NOT include explanations or summaries
-        - Make sure the lessons match the learner’s motivation, skill level, and weekly time
-        - All Tracks must be useful and achievable within a 3-month timeframe
-        - Do not exceed 10 total Tracks
-
-        Now build a complete, personalized learning path based on the above profile.
-        """
-        )
-
-        curriculum = (prompt_template | llm).invoke({
-            "track": track,
-            "motivation": motivation,
-            "tools_used": tools_used,
-            "goal_3mo": goal_3mo,
-            "preferred_style": preferred_style,
-            "weekly_time": weekly_time,
-            "comfort_level": comfort_level,
-            "current_role": current_role
-        })
-
-        # === Extract Tracks and Lessons ===
-        tracks = {}
-        current_track = None
-
-        for line in curriculum.splitlines():
-            line = line.strip()
-            if line.startswith("Track:"):
-                current_track = line.replace("Track:", "").strip()
-                tracks[current_track] = []
-            elif line.startswith("- Lesson") and current_track:
-                lesson_title = re.sub(r"^- Lesson \d+:\s*", "", line).strip()
-                if lesson_title:
-                    tracks[current_track].append(lesson_title)
-
-        # Safety check
-        if not tracks or not any(tracks.values()):
-            st.error("❌ Curriculum did not generate valid tracks or lessons. Please try again.")
+        if not required_fields_filled:
+            st.error("⚠️ Please fill out all fields from each tab (👤 About You 🧠 Learning Preferences and 🎯 Time & Goals) to generate your personal learning path.")
             st.stop()
-
-        # Flatten into list of all topics (for legacy display or navigation)
-        all_lessons = []
-        for tname, modules in tracks.items():
-            all_lessons.extend(modules)
-
-        first_lesson = all_lessons[0] if all_lessons else None
-
-        # === Defer Lesson Content Generation Until Track Is Accessed ===
-        track_lessons = {
-            track: [None] * len(lessons)
-            for track, lessons in tracks.items()
-        }
-
-
-        # === Save Profile and Route ===
-=======
-    tab1, tab2, tab3 = st.tabs(["👤 About You", "📚 Preferences", "🚀 Goals"])
-
-    with tab1:
-        name = st.text_input("🧑 What should we call you?")
-        interest = st.text_input("💡 What's motivating you to learn data?")
-        tools = st.text_input("🧰 Have you used any tools like SQL, Python, or Excel?")
-
-    with tab2:
-        style = st.text_input("🎧 How do you learn best? (Step-by-step, try-first, videos, etc.)")
-        time = st.text_input("⏱ How many hours per week can you dedicate?")
-        track = st.selectbox("📚 Which learning track do you want to follow?", ["Analyst", "Engineer", "Scientist"])
-
-    with tab3:
-        future = st.text_input("🔮 Where do you see yourself in 3 months with these new skills?")
-        submitted = st.button("Generate My Curriculum")
-
-    if submitted:
-        st.write("🧠 Creating your custom curriculum...")
-
-        prompt_template = PromptTemplate(
-            input_variables=["track", "interest", "tools", "future", "style", "time"],
-            template="""
-You are a world-class data career coach designing a personalized 8-week learning path.
-
-Here is the learner's background:
-- Track: {track}
-- Interest: {interest}
-- Tools: {tools}
-- Future Goals: {future}
-- Learning Style: {style}
-- Weekly Time: {time} hours
-
-Design an 8-week curriculum. For each week, return:
-1. One clear and concise **topic title only** (no prefixes like "Week", "Topic", or "Hands-On Activity")
-2. One **hands-on project or activity** related to the topic
-
-🧱 Format example:
-Topic Title: Data Cleaning and Preprocessing  
-Project: Clean a messy dataset in Excel or Python (remove nulls, fix types)
-
-Do this for all 8 weeks.
-"""
-        )
-
-        chain = prompt_template | llm
-        curriculum = chain.invoke({
-            "track": track,
-            "interest": interest,
-            "tools": tools,
-            "future": future,
-            "style": style,
-            "time": time
-        })
-
-        topic_lines = re.findall(r'Topic Title:\s*(.+)', curriculum)
-        if not topic_lines:
-            topic_lines = [
-                line.strip()
-                for line in curriculum.splitlines()
-                if len(line.strip()) > 6 and not line.lower().startswith(("project:", "-", "week", "hands-on"))
-            ]
-
-        first_lesson = topic_lines[0] if topic_lines else None
-
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
-        if first_lesson:
-            profile = {
-                "name": name,
-                "track": track,
-<<<<<<< HEAD
-                "interest": motivation,
-                "tools": tools_used,
-                "future": goal_3mo,
-                "style": preferred_style,
-                "time": weekly_time,
-                "comfort": comfort_level,
-                "role": current_role,
-                "start_date": datetime.now().strftime("%Y-%m-%d"),
-                "curriculum": curriculum,
-                "tracks": tracks,
-                "topics": all_lessons,
-                "lesson_blocks": [],
-                "track_lessons": track_lessons,
-                "current_topic": first_lesson
-            }
-
-            save_profile(profile)
-            save_memory(curriculum, {"topic": "curriculum", "type": "generated"})
-            st.session_state["lesson_topic"] = first_lesson
-            st.session_state["track_selected"] = list(tracks.keys())[0]
-            st.rerun()  # This simply reloads the page and lands them on the dashboard
-=======
-                "interest": interest,
-                "tools": tools,
-                "future": future,
-                "style": style,
-                "time": time,
-                "start_date": datetime.now().strftime("%Y-%m-%d"),
-                "curriculum": curriculum
-            }
-            profile["current_topic"] = first_lesson
-            save_profile(profile)
-            save_memory(curriculum, {"topic": "curriculum", "type": "generated"})
-            st.session_state["lesson_topic"] = first_lesson
-            st.switch_page("pages/_lesson_runner.py")
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
         else:
-            st.error("❌ Could not extract a lesson topic. Please try regenerating your profile.")
-            st.stop()
+            st.session_state["submitted_curriculum"] = True
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
+    if submit_button:
+        with st.spinner("🛠 Generating your custom learning path..."):
+            prompt_template = PromptTemplate(
+                input_variables=[
+                    "track", "motivation", "tools_used", "goal_3mo",
+                    "preferred_style", "weekly_time", "comfort_level", "current_role"
+                ],
+                template="""
+            You are an expert curriculum designer creating a highly personalized, job-ready learning path for a new data learner.
+
+            Your inspiration comes from:
+            - Google Data Analytics Certificate (for Analysts)
+            - IBM Data Science Certificate (for Scientists)
+            - Udacity Data Engineering Nanodegree (for Engineers)
+
+            🎯 Learner Profile:
+            - Desired Track: {track}
+            - Motivation: {motivation}
+            - Current Role: {current_role}
+            - Comfort Level: {comfort_level}
+            - Tools Experience: {tools_used}
+            - Weekly Time Available: {weekly_time}
+            - Preferred Learning Style: {preferred_style}
+            - 3-Month Goal: {goal_3mo}
+
+            🧩 Your Task:
+            Create a curriculum made up of multiple **Tracks** (e.g. "SQL Foundations", "Data Cleaning with Pandas", etc.). Each Track must include:
+            - A Track Title
+            - A list of 8–12 progressively scaffolded lesson titles
+
+            🛠️ Format (Output exactly like this):
+            Track: SQL Foundations  
+            - Lesson 1: Introduction to Relational Databases  
+            - Lesson 2: Basic SQL SELECT Statements  
+            ...  
+            - Lesson 10: Aggregations and GROUP BY Clauses
+
+            Track: Data Visualization with Python  
+            - Lesson 1: Intro to Matplotlib and Line Charts  
+            ...  
+            - Lesson 8: Building Interactive Dashboards
+
+            📏 Rules:
+            - Use only plain text (no bullet points or markdown)
+            - Do NOT include explanations or summaries
+            - Make sure the lessons match the learner’s motivation, skill level, and weekly time
+            - All Tracks must be useful and achievable within a 3-month timeframe
+            - Do not exceed 10 total Tracks
+
+            Now build a complete, personalized learning path based on the above profile.
+            """
+            )
+
+            curriculum = (prompt_template | llm).invoke({
+                "track": track,
+                "motivation": motivation,
+                "tools_used": tools_used,
+                "goal_3mo": goal_3mo,
+                "preferred_style": preferred_style,
+                "weekly_time": weekly_time,
+                "comfort_level": comfort_level,
+                "current_role": current_role
+            })
+
+            # === Extract Tracks and Lessons ===
+            tracks = {}
+            current_track = None
+
+            for line in curriculum.splitlines():
+                line = line.strip()
+                if line.startswith("Track:"):
+                    current_track = line.replace("Track:", "").strip()
+                    tracks[current_track] = []
+                elif line.startswith("- Lesson") and current_track:
+                    lesson_title = re.sub(r"^- Lesson \d+:\s*", "", line).strip()
+                    if lesson_title:
+                        tracks[current_track].append(lesson_title)
+
+            # Safety check
+            if not tracks or not any(tracks.values()):
+                st.error("❌ Curriculum did not generate valid tracks or lessons. Please try again.")
+                st.stop()
+
+            # Flatten into list of all topics (for legacy display or navigation)
+            all_lessons = []
+            for tname, modules in tracks.items():
+                all_lessons.extend(modules)
+
+            first_lesson = all_lessons[0] if all_lessons else None
+
+            # === Defer Lesson Content Generation Until Track Is Accessed ===
+            track_lessons = {
+                track: [None] * len(lessons)
+                for track, lessons in tracks.items()
+            }
+
+            # ✅ Ensure track_lessons keys match tracks
+            for track in tracks:
+                if track not in track_lessons:
+                    track_lessons[track] = [None] * len(tracks[track])
+
+            # === Save Profile and Route ===
+            if first_lesson:
+                profile = {
+                    "name": name,
+                    "track": track,
+                    "interest": motivation,
+                    "tools": tools_used,
+                    "future": goal_3mo,
+                    "style": preferred_style,
+                    "time": weekly_time,
+                    "comfort": comfort_level,
+                    "role": current_role,
+                    "start_date": datetime.now().strftime("%Y-%m-%d"),
+                    "curriculum": curriculum,
+                    "tracks": tracks,
+                    "topics": all_lessons,
+                    "lesson_blocks": [],
+                    "track_lessons": track_lessons,
+                    "current_topic": first_lesson
+                }
+
+                save_profile(profile, profile_path)
+                st.write("🛠 Initialized lesson slots for track:", list(track_lessons.keys()))
+                st.write("🛠 Slot count:", {k: len(v) for k, v in track_lessons.items()})
+
+                save_memory(curriculum, {"topic": "curriculum", "type": "generated"}, memory_folder)
+                st.session_state["lesson_topic"] = first_lesson
+                st.session_state["track_selected"] = list(tracks.keys())[0]
+                st.rerun()  # This simply reloads the page and lands them on the dashboard
+                # === Ensure current lesson and track are valid
+                if "lesson_topic" not in st.session_state or st.session_state["lesson_topic"] not in profile.get("topics", []):
+                    first_track = next(iter(profile["tracks"]), None)
+                    if first_track:
+                        st.session_state["track_selected"] = first_track
+                        st.session_state["lesson_topic"] = profile["tracks"][first_track][0]
+
+            else:
+                st.error("❌ Could not extract a lesson topic. Please try regenerating your profile.")
+                st.stop()
+
 # === 2. Validate profile + curriculum ===
 if not profile or "curriculum" not in profile:
     st.warning("⚠️ No profile or curriculum found. Please restart onboarding.")
     st.stop()
 
+
+
+
+# === Handle lesson jump via query params (e.g., from Completed Lessons list)
+query_params = st.query_params
+if "lesson" in query_params and "track" in query_params:
+    lesson = query_params["lesson"]
+    track = query_params["track"]
+    if track in profile["tracks"] and lesson in profile["tracks"][track]:
+        st.session_state["lesson_topic"] = lesson
+        st.session_state["track_selected"] = track
+        st.switch_page("pages/_lesson_runner.py")
+
+
+
+
+# ✅ Handle lesson launch from fake markdown link
+if "fake_click" in st.session_state:
+    clicked_lesson = st.session_state.pop("fake_click", None)
+    if clicked_lesson:
+        for track_name, lessons in profile["tracks"].items():
+            if clicked_lesson in lessons:
+                launch_lesson(clicked_lesson, track_name)
+                break
+
+
+
+
+# === Log Out Button ===
+if st.sidebar.button("🚪 Log Out"):
+    st.session_state.pop("username", None)
+    st.session_state.clear()
+    st.rerun()
+
 # === 3. Sidebar ===
-st.sidebar.title("👤 Profile")
-<<<<<<< HEAD
-
-if st.sidebar.button("🔄 Reset and Restart"):
-    try:
-        if os.path.exists(profile_path):
-            os.remove(profile_path)
-        if os.path.exists(memory_folder):
-            for f in os.listdir(memory_folder):
-                file_path = os.path.join(memory_folder, f)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-        st.success("✅ Reset complete. Please refresh to restart onboarding.")
-        st.stop()
-    except Exception as e:
-        st.error(f"Reset failed: {e}")
-        st.stop()
 
 
-=======
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
-st.sidebar.markdown(f"**User:** {profile.get('name', 'Anonymous')}")
-st.sidebar.markdown(f"**Track:** {profile['track']}")
-st.sidebar.markdown(f"**Time per week:** {profile['time']} hrs")
+if st.session_state["username"] == "walterashields@gmail.com":
+    if st.sidebar.button("🧹 Reset All User Data (Safe Dev Use)"):
+        try:
+            user_root = "walter_memory"
+            if os.path.exists(user_root):
+                for user_dir in os.listdir(user_root):
+                    full_path = os.path.join(user_root, user_dir)
+                    if os.path.isdir(full_path):
+                        shutil.rmtree(full_path)
 
-<<<<<<< HEAD
-completed = get_completed_lessons()
+            st.success("✅ All user profiles and memory cleared. Vector store left untouched.")
+            st.stop()
+        except Exception as e:
+            st.error(f"❌ Reset failed: {e}")
+            st.stop()
+
+
+completed = get_completed_lessons(memory_folder)
 current_lesson = st.session_state.get("lesson_topic", profile.get("current_topic"))
 st.session_state["lesson_topic"] = current_lesson
 
@@ -387,132 +544,26 @@ def lesson_status_class(lesson):
     else:
         return ""
 
+def lesson_status_icon(lesson):
+    if lesson == current_lesson:
+        return "📍"
+    elif lesson in completed:
+        return "✅"
+    else:
+        return "⏳"
+
 # === Sidebar: Tracks & Lessons ===
 for track_title, lessons in tracks.items():
     st.sidebar.markdown(f'<div class="lesson-group"><strong>📘 {track_title}</strong>', unsafe_allow_html=True)
-    for lesson in lessons:
-        idx = lessons.index(lesson) + 1
-        display = f"{idx}. {lesson}"
+    for idx, lesson in enumerate(lessons):
+        icon = lesson_status_icon(lesson)
+        display = f"{icon} Lesson {idx + 1}: {lesson}"
         if st.sidebar.button(display, key=f"{track_title}_{lesson}"):
-            st.session_state["lesson_topic"] = lesson
-            st.session_state["track_selected"] = track_title  # 💡 NEW LINE to fix the bug
-            st.switch_page("pages/_lesson_runner.py")
-
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
-
-=======
-curriculum = profile["curriculum"]
-raw_lessons = re.findall(r"^\s*(?:\d+\.|\•|\-)?\s*(Topic Title:\s*.+?)(?:\s+Project\:|$)", curriculum, re.MULTILINE)
-lessons = [t.replace("Topic Title:", "").strip() for t in raw_lessons]
-topics = lessons
-
-completed = get_completed_lessons()
-current_lesson = st.session_state.get("lesson_topic")
-upcoming = [t for t in topics if t not in completed and t != current_lesson]
-
-# CSS Styling
-st.markdown("""
-<style>
-.lesson-group {
-    background-color: #f5f7fa;
-    border-radius: 10px;
-    padding: 0.8rem;
-    margin-bottom: 1rem;
-}
-.lesson-button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 0.4rem 0.6rem;
-    margin-bottom: 0.2rem;
-    font-size: 0.9rem;
-    border: none;
-    background-color: #fff;
-    border-radius: 6px;
-    cursor: pointer;
-}
-.lesson-button:hover {
-    background-color: #e0f0ff;
-}
-.lesson-button.current {
-    background-color: #e0f0ff;
-    font-weight: bold;
-    border-left: 4px solid #2563eb;
-}
-.lesson-button.completed {
-    color: #4caf50;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# === Sidebar: Lesson Overview ===
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📘 Your Lessons")
-
-# Get topic list and current lesson
-topics = lessons  # already extracted earlier
-completed = get_completed_lessons()
-current_lesson = st.session_state.get("lesson_topic")
-
-# Safeguard against edge case
-if not current_lesson and "current_topic" in profile:
-    current_lesson = profile["current_topic"]
-    st.session_state["lesson_topic"] = current_lesson
-
-# Now calculate upcoming (excluding current and completed)
-upcoming = [t for t in topics if t not in completed and t != current_lesson]
-
-# Sidebar styling
-st.markdown("""
-<style>
-.lesson-group {
-    background-color: #f5f7fa;
-    border-radius: 10px;
-    padding: 0.8rem;
-    margin-bottom: 1rem;
-}
-button[kind="secondary"] {
-    width: 100% !important;
-    text-align: left !important;
-    margin-bottom: 0.3rem;
-    font-size: 0.9rem;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# 📍 Current Lesson
-if current_lesson in topics:
-    st.sidebar.markdown('<div class="lesson-group"><strong>📍 Current Lesson</strong>', unsafe_allow_html=True)
-    idx = topics.index(current_lesson) + 1
-    if st.sidebar.button(f"{idx}. {current_lesson}", key=f"current_{idx}"):
-        st.session_state["lesson_topic"] = current_lesson
-        st.switch_page("pages/_lesson_runner.py")
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
-
-# ⏭️ Upcoming Lessons
-if upcoming:
-    st.sidebar.markdown('<div class="lesson-group"><strong>⏭️ Upcoming Lessons</strong>', unsafe_allow_html=True)
-    for topic in upcoming:
-        idx = topics.index(topic) + 1
-        if st.sidebar.button(f"{idx}. {topic}", key=f"upcoming_{idx}"):
-            st.session_state["lesson_topic"] = topic
-            st.switch_page("pages/_lesson_runner.py")
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
-
-# ✅ Completed Lessons
-if completed:
-    st.sidebar.markdown('<div class="lesson-group"><strong>✅ Completed Lessons</strong>', unsafe_allow_html=True)
-    for topic in completed:
-        idx = topics.index(topic) + 1
-        if st.sidebar.button(f"{idx}. {topic}", key=f"completed_{idx}"):
-            st.session_state["lesson_topic"] = topic
-            st.switch_page("pages/_lesson_runner.py")
+            launch_lesson(lesson, track_title)
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
 
 
-
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
 # === Restart button ===
 if st.sidebar.button("🔄 Restart Profile"):
     try:
@@ -534,27 +585,39 @@ if st.sidebar.button("🔄 Restart Profile"):
         st.error(f"Unexpected error while clearing profile: {e}")
         st.stop()
 
-<<<<<<< HEAD
 # === Dashboard Tiles ===
-st.title("📊 Your Learning Dashboard")
-
+with st.container():
+    st.markdown("""
+    <style>
+    h1.dash-title {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        margin-bottom: 0.5rem !important;
+        text-align: center !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown("<h1 id='dashboard-title' class='dash-title'>📊 Your Learning Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("""
+    <script>
+        const target = document.getElementById("dashboard-title");
+        if (target) {
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 100);
+        }
+    </script>
+    """, unsafe_allow_html=True)
+    
 remaining_lessons = []
 for track_lessons in tracks.values():
     remaining_lessons.extend([t for t in track_lessons if t not in completed])
 next_lesson = remaining_lessons[0] if remaining_lessons else None
 
-=======
-
-# === Dashboard Tiles ===
-st.title("📊 Your Learning Dashboard")
-remaining_lessons = [t for t in lessons if t not in completed]
-next_lesson = remaining_lessons[0] if remaining_lessons else None
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
 start_date = datetime.strptime(profile.get("start_date", datetime.now().strftime("%Y-%m-%d")), "%Y-%m-%d")
 days_since_start = (datetime.now() - start_date).days
 avg_days_per_lesson = round(days_since_start / len(completed), 2) if completed else 0
 
-<<<<<<< HEAD
 # === Style Enhancements for Curriculum Section ===
 st.markdown("""
 <style>
@@ -590,8 +653,6 @@ div[data-testid="stButton"] > button:hover {
 """, unsafe_allow_html=True)
 
 
-=======
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
 st.markdown("""
 <style>
 .bubble-tile {
@@ -626,27 +687,21 @@ with col1:
     st.markdown(f"""<div class="bubble-tile">
         <h4>👤 Learner Info</h4>
         <p><strong>Name:</strong> {profile['name']}</p>
-        <p><strong>Track:</strong> {profile['track']}</p>
-        <p><strong>Time/Week:</strong> {profile['time']} hrs</p>
+        <p><strong>Program:</strong> {profile['track']}</p>
+        <p><strong>Time/Week:</strong> {profile['time']}</p>
     </div>""", unsafe_allow_html=True)
 
 with col2:
     st.markdown(f"""<div class="bubble-tile">
-        <h4>📈 Progress</h4>
-<<<<<<< HEAD
+        <h4>📈 Lesson Progress</h4>
         <p><strong>Total Lessons:</strong> {total_lessons}</p>
         <p><strong>Completed:</strong> {len(completed)}</p>
         <p><strong>Progress:</strong> {int((len(completed)/total_lessons)*100) if total_lessons else 0}%</p>
-=======
-        <p><strong>Lessons:</strong> {len(lessons)}</p>
-        <p><strong>Completed:</strong> {len(completed)}</p>
-        <p><strong>Progress:</strong> {int((len(completed)/len(lessons))*100) if lessons else 0}%</p>
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
     </div>""", unsafe_allow_html=True)
 
 with col3:
     st.markdown(f"""<div class="bubble-tile">
-        <h4>📆 Activity</h4>
+        <h4>📆 Your Activity</h4>
         <p><strong>Days In:</strong> {days_since_start}</p>
         <p><strong>Avg/Lesson:</strong> {avg_days_per_lesson} days</p>
         <p><strong>Started:</strong> {start_date.strftime('%b %d, %Y')}</p>
@@ -658,14 +713,20 @@ with col4:
         <p><strong>{next_lesson if next_lesson else "🎉 All complete!"}</strong></p>
     </div>""", unsafe_allow_html=True)
 
-<<<<<<< HEAD
 
 # === Continue Button ===
 if next_lesson:
     st.markdown("<div style='margin-top: 1rem;'>", unsafe_allow_html=True)
-    if st.button("▶️ Start / Continue Lesson", key="start_continue_button"):
-        st.session_state["lesson_topic"] = next_lesson
-        st.switch_page("pages/_lesson_runner.py")
+if st.button("▶️ Start / Continue Lesson", key="start_continue_button"):
+    st.session_state["lesson_topic"] = next_lesson
+    # This gets the correct track that lesson belongs to
+    for track_name, lessons in tracks.items():
+        if next_lesson in lessons:
+            st.session_state["track_selected"] = track_name
+            break
+    st.switch_page("pages/_lesson_runner.py")
+
+
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -677,15 +738,69 @@ track_completion = {
 tracks_completed = sum(track_completion.values())
 total_tracks = len(tracks)
 
-col_track = st.columns(1)[0]
+col_track, col_completed_tracks, col_completed_lessons = st.columns(3)
+# 🧭 Progress bubble
 with col_track:
-    st.markdown(f"""<div class="bubble-tile">
+    st.markdown(f"""
+    <div class="bubble-tile" style="display: flex; flex-direction: column; justify-content: flex-start;">
         <h4>📂 Track Progress</h4>
         <p><strong>Tracks:</strong> {total_tracks}</p>
         <p><strong>Completed:</strong> {tracks_completed}</p>
         <p><strong>Progress:</strong> {int((tracks_completed/total_tracks)*100) if total_tracks else 0}%</p>
-    </div>""", unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
+
+
+completed_tracks = {
+    t: l for t, l in tracks.items()
+    if all(lesson in completed for lesson in l)
+}
+
+
+with col_completed_tracks:
+    completed_tracks_html = """
+    <div class="bubble-tile" style="display: flex; flex-direction: column; justify-content: flex-start;">
+        <h4>✅ Completed Tracks</h4>
+        <div style='max-height: 120px; overflow-y: auto; padding-right: 5px;'>"""
+
+    completed_tracks = {
+        t: l for t, l in tracks.items()
+        if all(lesson in completed for lesson in l)
+    }
+
+    if completed_tracks:
+        for track_title in completed_tracks:
+            completed_tracks_html += f"""
+            <p style='margin: 0.2rem 0; font-size: 0.9rem; color:#2b6cb0;'>
+                {track_title}
+            </p>"""
+    else:
+        completed_tracks_html += "<p style='font-size: 0.9rem;'>No completed tracks yet.</p>"
+
+    completed_tracks_html += "</div></div>"
+    st.markdown(completed_tracks_html, unsafe_allow_html=True)
+
+
+with col_completed_lessons:
+    completed_lessons_html = """
+    <div class="bubble-tile" style="display: flex; flex-direction: column; justify-content: flex-start;">
+        <h4>✅ Completed Lessons</h4>
+        <div style='max-height: 120px; overflow-y: auto; padding-right: 5px;'>"""
+
+    if completed:
+        for track_title, lessons in tracks.items():
+            for lesson in lessons:
+                if lesson in completed:
+                    completed_lessons_html += f"""
+                    <p style='margin: 0.2rem 0; font-size: 0.9rem; color:#2b6cb0;'>
+                        {lesson}
+                    </p>"""
+    else:
+        completed_lessons_html += "<p style='font-size: 0.9rem;'>No completed lessons yet.</p>"
+
+    completed_lessons_html += "</div></div>"
+    st.markdown(completed_lessons_html, unsafe_allow_html=True)
 
 
 
@@ -701,85 +816,4 @@ for track_title, lessons in tracks.items():
             status_icon = "✅" if lesson in completed else "⏳"
             button_label = f"{status_icon} Lesson {i}: {lesson}"
             if st.button(button_label, key=f"{track_title}_{lesson}_expander"):
-                st.session_state["lesson_topic"] = lesson
-                st.session_state["track_selected"] = track_title
-                st.switch_page("pages/_lesson_runner.py")
-=======
-# === Curriculum Section ===
-st.markdown("### 🧭 Your Curriculum", unsafe_allow_html=True)
-
-# --- CSS Styling ---
-st.markdown("""
-<style>
-.learning-box {
-    background: #fff;
-    border-radius: 20px;
-    padding: 1.3rem 1.2rem;
-    box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.05);
-}
-.learning-box h4 {
-    font-size: 1.1rem;
-    color: #222;
-    margin-bottom: 1rem;
-}
-.learning-box ul {
-    padding-left: 1.2rem;
-    font-size: 0.95rem;
-    margin-top: 0;
-}
-.learning-box p {
-    font-size: 0.95rem;
-    margin: 0;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# --- Layout with Proportional Columns ---
-col1, col2 = st.columns([2.5, 1])
-
-# 📚 Left: Learning Path
-with col1:
-    st.markdown(f"""
-    <div class="learning-box" style="height: 300px;">
-        <h4>📚 Your Learning Path</h4>
-        <ul>
-            {''.join([f"<li>{w}</li>" for w in lessons])}
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-# 🚀 Right: Next Lesson + Button
-with col2:
-    st.markdown(f"""
-    <div class="learning-box" style="min-height: 90px;">
-        <h4>🚀 Continue Learning</h4>
-        <p><strong>{next_lesson if next_lesson else "🎉 All complete!"}</strong></p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-        <style>
-        div[data-testid="stButton"][aria-label="start_continue_button"] > button {
-            background-color: #0FBC02 !important;
-            color: white !important;
-            font-weight: bold;
-            border: none;
-            border-radius: 6px;
-            padding: 0.6rem 1.2rem;
-            font-size: 0.95rem;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-
-    
-    if next_lesson:
-        st.markdown("<div style='margin-top: 0.75rem;'>", unsafe_allow_html=True)
-        if st.button("▶️ Start / Continue Lesson", key="start_continue_button"):
-            st.session_state["lesson_topic"] = next_lesson
-            st.switch_page("pages/_lesson_runner.py")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-
-
->>>>>>> 65ca58895611140109c4e872b15c5eca3f755117
+                launch_lesson(lesson, track_title)

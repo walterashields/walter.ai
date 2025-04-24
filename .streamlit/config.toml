@@ -1,8 +1,11 @@
 [theme]
-base="light"
+base = "light"
 
 [server]
-runOnSave = true
+headless = true
+
+[browser]
+gatherUsageStats = false
 
 [client]
 showSidebarNavigation = false
