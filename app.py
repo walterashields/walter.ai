@@ -21,7 +21,7 @@ from memory import (
     get_completed_lessons,
     mark_lesson_complete
 )
-from langchain_community.llms import Ollama
+from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from datetime import datetime
 from dotenv import load_dotenv
@@ -260,7 +260,7 @@ st.session_state["profile_path"] = profile_path
 
 
 # Load LLM
-llm = Ollama(model="mistral")
+llm = ChatOpenAI(model="gpt-4", temperature=0.7)
 
 
 

@@ -5,7 +5,11 @@ __pycache__/
 .env
 .DS_Store
 
+<<<<<<< HEAD
 # Ignore local memory and vector stores
 walter_memory/
 vector_store/
 vector_store_openai/
+=======
+walter_memory/chroma.sqlite3
+>>>>>>> 2a874995 (Updated app.py with OpenAI fallback for lesson generation)
