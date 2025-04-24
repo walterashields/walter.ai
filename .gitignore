@@ -5,3 +5,7 @@ __pycache__/
 .env
 .DS_Store
 
+# Ignore local memory and vector stores
+walter_memory/
+vector_store/
+vector_store_openai/
