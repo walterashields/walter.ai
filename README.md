@@ -13,18 +13,19 @@ this system helps learners go from zero to job-ready through guided, interactive
 - 📊 **Dashboard view** to monitor lesson & track progress
 - 🧠 **Memory system** that tracks user progress and completed lessons
 - ✅ **Multi-format challenges** reviewed by GPT (code, quizzes, reflections)
-- 🌐 Currently runs locally using **Ollama + Mistral** and **LangChain**
+- 🌐 Runs locally with **Ollama (Mistral model) and LangChain, using OpenAI's Embedding API (text-embedding-ada-002) for vector search only**.
 
 ## 🛠️ Tech Stack
 
-| Tool               | Purpose                                   |
-|--------------------|-------------------------------------------|
-| **Streamlit**      | Frontend & app framework                  |
-| **LangChain**      | LLM orchestration                         |
-| **Ollama (Mistral)** | Local LLM backend                         |
-| **ChromaDB**       | Vector storage for lesson context         |
-| **OpenAI Embeddings** | Used for document similarity (text-embedding-ada-002) |
-| **Custom Prompt Engineering** | Structured lesson generation & feedback          |
+| Tool                      | Purpose                                                                 |
+|---------------------------|-------------------------------------------------------------------------|
+| **Streamlit**             | Interactive frontend and dashboard framework                            |
+| **LangChain**             | LLM orchestration and chaining logic for lesson generation and feedback |
+| **Ollama (Mistral)**      | Local LLM backend for generating lessons and reviewing learner answers  |
+| **ChromaDB**              | Local vector store for storing and retrieving lesson context            |
+| **OpenAI Embeddings (text-embedding-ada-002)** | Used *only* to embed text into vectors for similarity search         |
+| **Custom Prompt Engineering** | Structured generation of beginner-friendly lessons and tailored feedback   |
+
 
 ## 🧪 How to Run It Locally
 
