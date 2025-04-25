@@ -11,6 +11,7 @@ from langchain.schema import Document
 from datetime import datetime
 from langchain_core.messages import AIMessage  # add this near the top
 
+
 import re
 
 
@@ -81,7 +82,13 @@ def save_memory(content, metadata, memory_folder="walter_memory/default_user"):
     with open(path, "w", encoding="utf-8") as f:
         f.write(f"# Topic: {metadata.get('topic', '')}\n")
         f.write(f"# Type: {metadata.get('type', '')}\n\n")
-        f.write(content)
+        
+        # Convert AIMessage to string if needed
+        if isinstance(content, AIMessage):
+            f.write(content.content)
+        else:
+            f.write(str(content))
+
 
 
 
