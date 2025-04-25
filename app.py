@@ -391,7 +391,7 @@ if not profile:
             tracks = {}
             current_track = None
 
-            for line in curriculum.splitlines():
+            for line in curriculum.content.splitlines():
                 line = line.strip()
                 if line.startswith("Track:"):
                     current_track = line.replace("Track:", "").strip()
