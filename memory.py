@@ -9,6 +9,7 @@ from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from datetime import datetime
+from langchain_core.messages import AIMessage  # add this near the top
 
 import re
 
@@ -34,9 +35,21 @@ retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
 # ----------- 🔍 Save / Load Learner Profile -----------
 
+
+
+def make_serializable(obj):
+    if isinstance(obj, AIMessage):
+        return obj.content
+    elif isinstance(obj, dict):
+        return {k: make_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_serializable(i) for i in obj]
+    return obj
+
 def save_learner_profile(profile: dict, profile_path: str):
     with open(profile_path, "w") as f:
-        json.dump(profile, f)
+        json.dump(make_serializable(profile), f, indent=2)
+
 
 def load_learner_profile(profile_path: str):
     if os.path.exists(profile_path):
