@@ -54,9 +54,14 @@ def save_learner_profile(profile: dict, profile_path: str):
 
 def load_learner_profile(profile_path: str):
     if os.path.exists(profile_path):
-        with open(profile_path, "r") as f:
-            return json.load(f)
+        try:
+            with open(profile_path, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            print(f"⚠️ Corrupted profile file: {profile_path}. Returning None.")
+            return None
     return None
+
 
 
 # ----------- 🧠 Save Session Summary to Vector Store -----------
