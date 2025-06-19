@@ -1,18 +1,18 @@
-import os
-import shutil
 import streamlit as st
-import streamlit.components.v1 as components
+st.set_page_config(page_title="📊 Learning Dashboard", layout="wide")  # ✅ MUST BE FIRST
+
+# === Clean single imports ===
+import os
+import json
+import shutil
 import re
 import urllib.parse
+from datetime import datetime
+from dotenv import load_dotenv
+import streamlit.components.v1 as components
+import streamlit_authenticator as stauth
 
-# === Shared Lesson Launch Function (Global) ===
-def launch_lesson(lesson_title, track_title):
-    print(f"▶️ LAUNCHING {lesson_title} in {track_title}")  # Optional debug
-    st.session_state["lesson_topic"] = lesson_title
-    st.session_state["track_selected"] = track_title
-    st.switch_page("pages/_lesson_runner.py")
-
-
+from utils import load_pending_requests, save_pending_requests, log_approved_user
 
 from memory import (
     load_learner_profile as load_profile,
@@ -23,59 +23,238 @@ from memory import (
 )
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
-from datetime import datetime
-from dotenv import load_dotenv
+from auth_utils import add_user, hash_password, get_users, delete_user
+from auth import load_authenticator
 
-
-# List of approved beta users
-USER_DB = {
-    "walterashields@gmail.com": "test123",
-    "jen@mydomain.com": "jenpass",
-    "betauser@site.com": "tryme"
-}
-
-
-# ✅ Load environment variables
 load_dotenv()
 
-# === STEP 1: Login Logic ===
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
 
-if not st.session_state.logged_in:
+from auth import load_authenticator
+
+# === Setup user DB & Authenticator
+users = get_users()
+credentials = {
+    "usernames": {
+        email: {
+            "name": user["name"],
+            "password": user["password"]
+        }
+        for email, user in users.items()
+    }
+}
+
+if not credentials["usernames"]:
+    st.error("⚠️ No users found in the database. Please add at least one user.")
+    st.stop()
+
+# === Initialize authenticator (shared across pages)
+authenticator = load_authenticator(credentials)
+
+# === LOGIN TITLE (Always show above form) ===
+st.markdown("""
+    <div style='text-align: center; margin-top: 2rem;'>
+        <h1 style='font-size: 2.4rem; margin-bottom: 0.5rem;'>📊 WALTER.AI</h1>
+        <p style='color: #444; font-size: 1.05rem;'>Personalized AI Learning in Data Analytics & Science.</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# === LOGIN SECTION (Always Run)
+name, auth_status, username = authenticator.login("Login", "main")
+
+
+# 👇 Step 1: User is authenticated, set session vars
+if auth_status is True and not st.session_state.get("authentication_status"):
+    st.session_state["authentication_status"] = True
+    st.session_state["username"] = username
+    st.session_state["name"] = name
+    st.session_state["just_logged_in"] = True
+    st.stop()  # 🚫 STOP so next render can safely rerun
+
+# 👇 Step 2: On next render, do the rerun
+if st.session_state.get("just_logged_in"):
+    del st.session_state["just_logged_in"]
+    st.rerun()
+
+
+# 👇 If login form was shown but failed
+if auth_status is False:
+    st.error("Invalid username or password.")
+    st.stop()
+
+# 👇 Still waiting for login (None = form shown)
+#if auth_status is None and not st.session_state.get("authentication_status"):
+#    st.markdown("""
+#        <div style='text-align: center; margin-top: 2rem; margin-bottom: 1.5rem;'>
+#            <h2>🔐 Welcome to WALTER.AI</h2>
+#            <p style='font-size: 1rem; color: #555;'>Log in below to access your personalized learning platform.</p>
+#        </div>
+#    """, unsafe_allow_html=True)
+
+if auth_status is None and not st.session_state.get("authentication_status"):
+    st.markdown("<style>[data-testid='stSidebar'] { display: none; }</style>", unsafe_allow_html=True)
+
+    pending_requests = load_pending_requests()
+    with st.expander("👉🏾 Don't have access? Request it here.", expanded=False):
+        with st.form("request_form"):
+            req_name = st.text_input("Full Name", key="request_name")
+            req_email = st.text_input("Email Address", key="request_email")
+            req_goals = st.text_area("Why do you want access?", key="request_goals")
+            submitted = st.form_submit_button("Submit Request")
+
+        if submitted:
+            if not req_name or not req_email or not req_goals:
+                st.error("All fields are required.")
+            elif any(r["email"] == req_email for r in pending_requests):
+                st.warning("You've already submitted a request.")
+            else:
+                pending_requests.append({
+                    "name": req_name,
+                    "email": req_email,
+                    "goals": req_goals
+                })
+                save_pending_requests(pending_requests)
+                st.success("✅ Request submitted. We'll review it shortly.")
+
+    #st.markdown("<hr style='margin-top: 2rem;'>", unsafe_allow_html=True)
+
     st.markdown("""
-        <h1 style='margin-top: 0; padding-top: 0; font-size: 2.4rem;'>Welcome to WALTER.AI</h1>
-        <p style='margin-top: -0.5rem;'>Please log in to continue</p>
+    <div style='
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1.8rem 2rem;
+        background-color: #f9f9fb;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        text-align: center;
+    '>
+        <h3 style='margin-bottom: 0.5rem;'>📘 About This Tool</h3>
+        <p style='font-size: 1.05rem; color: #333;'>
+            <strong>WALTER.AI</strong> is an AI-powered learning assistant that creates a personalized curriculum just for you —
+            whether you're beginning in <strong>Data Analytics</strong> or advancing in <strong>Data Science</strong>.
+        </p>
+        <p style='font-size: 1rem; color: #555; margin-top: 1rem;'>
+            Built with the same structure as top-tier programs from Google and IBM, this tool delivers real-world lessons, feedback, and pacing tailored to your goals — all in a clean, interactive dashboard. No setup required.
+        </p>
+        <p style='font-size: 0.95rem; color: #444; margin-top: 1.5rem;'>
+            📝 Want to try it? Use the request form above and tell us why you'd like access.
+        </p>
+    </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div style='
+        text-align: center;
+        font-size: 0.85rem;
+        color: #888;
+        margin-top: 2rem;
+        padding-bottom: 1.5rem;
+    '>
+        © 2025 <strong>WSDA Learning</strong>. All rights reserved.
+    </div>
+    """, unsafe_allow_html=True)
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    st.stop()
 
-    if st.button("Log In"):
-        if username in USER_DB and password == USER_DB[username]:
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.rerun()
-        else:
-            st.error("Invalid username or password.")
-    st.stop()  # 👈 Stop execution if not logged in
+
+
+
+# ✅ Final safety check
+if not st.session_state.get("authentication_status"):
+    st.stop()
+
+
+
+
+
+####################AUTHENTICATION ABOVE THIS LINE####################################
+
+st.markdown(
+    """
+    <style>
+    /* Remove default top padding on main content */
+    section.main > div:first-child {
+        padding-top: 1rem !important;
+    }
+
+    /* Adjust block container spacing (secondary fix) */
+    .block-container {
+        padding-top: 1rem !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# === Shared Lesson Launch Function (Global) ===
+def launch_lesson(lesson_topic, track_name):
+    st.session_state["lesson_topic"] = lesson_topic
+    st.session_state["track_selected"] = track_name
+    print("🚀 LAUNCH LESSON:", lesson_topic, "in", track_name)
+    st.write("🚀 Switching to lesson:", lesson_topic, "in", track_name)  # Will show up if still on screen
+    st.switch_page("pages/_lesson_runner.py")
+    
+def log_temp_password(email, password):
+    os.makedirs("access_logs", exist_ok=True)
+    filepath = "access_logs/temp_passwords.csv"
+    lines = []
+
+    # Read existing lines and skip the one to overwrite
+    if os.path.exists(filepath):
+        with open(filepath, "r") as f:
+            lines = [line for line in f.readlines() if not line.startswith(email + ",")]
+
+    # Add new line for this email
+    lines.append(f"{email},{password}\n")
+
+    with open(filepath, "w") as f:
+        f.writelines(lines)
+
+
+def update_approved_user_password(email, new_password):
+    filepath = "access_logs/approved_users.csv"
+    if not os.path.exists(filepath):
+        return
+
+    updated_lines = []
+    with open(filepath, "r") as f:
+        for line in f:
+            parts = line.strip().split(",", 4)
+            if len(parts) == 5 and parts[1] == email:
+                parts[3] = new_password  # Update password
+                parts[4] = datetime.now().strftime('%Y-%m-%d %H:%M')  # Update timestamp
+            updated_lines.append(",".join(parts))
+
+    with open(filepath, "w") as f:
+        f.write("\n".join(updated_lines) + "\n")
 
 # Sanitize username to match _lesson_runner.py format
 def safe_username(raw_username):
+    if not raw_username:
+        return None
     return raw_username.replace("@", "_at_").replace(".", "_dot_")
 
-username = safe_username(st.session_state["username"])
-memory_folder = f"walter_memory/{username}"
-profile_path = f"{memory_folder}/{username}_profile.json"
+# ✅ Only proceed if user is authenticated
+if st.session_state.get("username"):
+    username = safe_username(st.session_state["username"])
+    memory_folder = f"walter_memory/{username}"
+    profile_path = f"{memory_folder}/{username}_profile.json"
 
-os.makedirs(memory_folder, exist_ok=True)
+    os.makedirs(memory_folder, exist_ok=True)
 
-st.session_state["memory_folder"] = memory_folder
-st.session_state["profile_path"] = profile_path
+    st.session_state["memory_folder"] = memory_folder
+    st.session_state["profile_path"] = profile_path
+else:
+    st.stop()
 
-# ✅ Setup Streamlit page config
-st.set_page_config(page_title="📊 Learning Dashboard", layout="wide")
+
+
+
+
+
+
+
 
 st.markdown("""
 <style>
@@ -87,8 +266,6 @@ div[data-testid="stSidebar"] button {
 }
 </style>
 """, unsafe_allow_html=True)
-
-
 
 st.markdown("""
 <style>
@@ -107,8 +284,6 @@ button[kind="secondary"] {
 </style>
 """, unsafe_allow_html=True)
 
-
-
 st.markdown("""
 <style>
 header[data-testid="stHeader"] {
@@ -125,10 +300,6 @@ section.main > div:first-child,
 }
 </style>
 """, unsafe_allow_html=True)
-
-
-
-
 
 # 🔧 Enable JS-to-Python postMessage event handling
 st.markdown("""
@@ -172,9 +343,6 @@ div[data-testid="stButton"] > button {
 }
 </style>
 """, unsafe_allow_html=True)
-
-
-
 
 # CSS for sidebar containers and button styling
 st.markdown("""
@@ -221,14 +389,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-
-# Ensure a user is logged in
-# if "username" not in st.session_state:
-#     st.session_state.clear()
-#    st.rerun()
-
-
-
 # === Load or create the learner profile
 if os.path.exists(profile_path):
     profile = load_profile(profile_path)
@@ -260,8 +420,11 @@ st.session_state["profile_path"] = profile_path
 
 
 # Load LLM
-llm = ChatOpenAI(model="gpt-4", temperature=0.7)
-
+import os
+llm = ChatOpenAI(
+    model="gpt-4",
+    temperature=0.7
+)
 
 
 # === 1. New User Flow ===
@@ -464,12 +627,11 @@ if not profile:
                 st.error("❌ Could not extract a lesson topic. Please try regenerating your profile.")
                 st.stop()
 
-# === 2. Validate profile + curriculum ===
-if not profile or "curriculum" not in profile:
-    st.warning("⚠️ No profile or curriculum found. Please restart onboarding.")
-    st.stop()
-
-
+# === 2. Validate profile + curriculum for all users
+if auth_status:
+    if not profile or "curriculum" not in profile:
+        st.warning("⚠️ No profile or curriculum found. Please restart onboarding.")
+        st.stop()
 
 
 # === Handle lesson jump via query params (e.g., from Completed Lessons list)
@@ -481,9 +643,7 @@ if "lesson" in query_params and "track" in query_params:
         st.session_state["lesson_topic"] = lesson
         st.session_state["track_selected"] = track
         st.switch_page("pages/_lesson_runner.py")
-
-
-
+        st.stop()  # << Important
 
 # ✅ Handle lesson launch from fake markdown link
 if "fake_click" in st.session_state:
@@ -491,22 +651,49 @@ if "fake_click" in st.session_state:
     if clicked_lesson:
         for track_name, lessons in profile["tracks"].items():
             if clicked_lesson in lessons:
-                launch_lesson(clicked_lesson, track_name)
-                break
+                st.session_state["track_selected"] = track_name
+                st.session_state["lesson_topic"] = clicked_lesson
+
+                st.write("➡️ DEBUG: Preparing to jump to lesson runner")
+                st.write("    lesson_topic:", clicked_lesson)
+                st.write("    track_selected:", track_name)
+                st.write("    username:", st.session_state.get("username"))
+
+
+                st.switch_page("pages/_lesson_runner.py")
+                st.stop()
+
+# === Show Admin Dashboard Link for Admin Users ===
+if username in ["walter_at_example_dot_com"]:
+    if st.sidebar.button("🛠 Admin Panel"):
+        st.switch_page("pages/admin_dashboard.py")
+
+# === LOGOUT HANDLER ===
+logout_clicked = authenticator.logout("🚪 Log Out", "sidebar")
+
+if logout_clicked:
+    # Fully clear Streamlit session
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+
+    # ✅ Force redirect using JS
+    st.markdown(
+        """
+        <script>
+            window.location.href = window.location.href;
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
+    st.stop()
 
 
 
 
-# === Log Out Button ===
-if st.sidebar.button("🚪 Log Out"):
-    st.session_state.pop("username", None)
-    st.session_state.clear()
-    st.rerun()
 
 # === 3. Sidebar ===
 
-
-if st.session_state["username"] == "walterashields@gmail.com":
+if st.session_state.get("username") == "walterashields@gmail.com":
     if st.sidebar.button("🧹 Reset All User Data (Safe Dev Use)"):
         try:
             user_root = "walter_memory"
@@ -585,29 +772,17 @@ if st.sidebar.button("🔄 Restart Profile"):
         st.error(f"Unexpected error while clearing profile: {e}")
         st.stop()
 
-# === Dashboard Tiles ===
-with st.container():
-    st.markdown("""
-    <style>
-    h1.dash-title {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-        margin-bottom: 0.5rem !important;
-        text-align: center !important;
+st.markdown("<h1 id='dashboard-title' class='dash-title'>📊 Your Learning Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("""
+<script>
+    const target = document.getElementById("dashboard-title");
+    if (target) {
+        setTimeout(() => {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
     }
-    </style>
-    """, unsafe_allow_html=True)
-    st.markdown("<h1 id='dashboard-title' class='dash-title'>📊 Your Learning Dashboard</h1>", unsafe_allow_html=True)
-    st.markdown("""
-    <script>
-        const target = document.getElementById("dashboard-title");
-        if (target) {
-            setTimeout(() => {
-                target.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 100);
-        }
-    </script>
-    """, unsafe_allow_html=True)
+</script>
+""", unsafe_allow_html=True)
     
 remaining_lessons = []
 for track_lessons in tracks.values():
@@ -750,13 +925,10 @@ with col_track:
     </div>
     """, unsafe_allow_html=True)
 
-
-
 completed_tracks = {
     t: l for t, l in tracks.items()
     if all(lesson in completed for lesson in l)
 }
-
 
 with col_completed_tracks:
     completed_tracks_html = """

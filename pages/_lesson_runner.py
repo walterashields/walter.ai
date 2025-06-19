@@ -1,21 +1,50 @@
 import streamlit as st
-import re
-import os
-
-
-# ✅ Set page config early
+# === Set page config early ===
 st.set_page_config(page_title="📘 Lesson Viewer", layout="wide")
 
-# ✅ Hide the default sidebar multipage navigation
-st.markdown("""
-    <style>
-    section[data-testid="stSidebarNav"] {
-        display: none !important;
+import os, json, re
+from PIL import Image
+from auth import load_authenticator
+from auth_utils import get_users
+
+# Load user credentials (same as app.py)
+users = get_users()
+credentials = {
+    "usernames": {
+        email: {
+            "name": user["name"],
+            "password": user["password"]
+        }
+        for email, user in users.items()
     }
-    </style>
-""", unsafe_allow_html=True)
+}
+
+# Load authenticator with shared credentials
+authenticator = load_authenticator(credentials)
+
+# === Check login status and session keys
+required_keys = ["authentication_status", "username", "track_selected", "lesson_topic"]
+
+if not all(k in st.session_state for k in required_keys):
+    st.error("🚫 Session is incomplete. Please go back to the dashboard and relaunch the lesson.")
+    st.stop()
+
+# === Pull key user info
+username = st.session_state["username"]
+track_selected = st.session_state["track_selected"]
+lesson_topic = st.session_state["lesson_topic"]
+name = st.session_state.get("name", username)
+
+# === Header with logo
+logo = Image.open("static/wsda-logo.png")
+col1, col2 = st.columns([1, 10])
+with col1:
+    st.image(logo, width=40)
+with col2:
+    st.markdown("<div style='padding-top: 12px; font-weight: bold;'>Walter Shields Data Academy</div>", unsafe_allow_html=True)
 
 
+####################AUTHENTICATION ABOVE THIS LINE#######################
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 
@@ -26,7 +55,6 @@ from memory import (
     mark_lesson_complete,
     get_completed_lessons
 )
-
 
 # Check if profile loaded
 # === User Login Guard ===
@@ -60,9 +88,6 @@ profile = load_learner_profile(profile_path)
 if not profile:
     st.error("⚠️ No learner profile found. Please return to the main app and complete onboarding.")
     st.stop()
-
-
-
 
 # === Sanitize username for filesystem usage ===
 def safe_username(raw_username):
@@ -118,10 +143,6 @@ if track_selected not in profile["track_lessons"]:
     profile["track_lessons"][track_selected] = [None] * num_lessons
     save_learner_profile(profile, profile_path)
     st.info(f"🛠 Initialized lesson slots for track: '{track_selected}'")
-
-
-
-
 
 # ✅ Auto-recover track_selected if it's missing but lesson_topic exists
 if not st.session_state.get("track_selected") and st.session_state.get("lesson_topic") and profile:
@@ -452,8 +473,6 @@ if lesson_raw is None or lesson_raw.strip() == "":
 
         llm = ChatOpenAI(model="gpt-4", temperature=0.7)
         try:
-            # DEBUG: Print context length to prevent overflow
-            print("🔍 Retrieved context length:", len(retrieved_context))
 
             # Optional: Trim context if it’s too long
             if len(retrieved_context) > 12000:

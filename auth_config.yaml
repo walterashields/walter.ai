@@ -1,0 +1,9 @@
+credentials:
+  usernames:
+    walter@example.com:
+      name: Walter
+      password: "$2b$12$8lcoByk/nz6cVm/FLLQrgeX92EwBQglBBwLGL6IecHieApfUjWxpe"  # "admin123"
+cookie:
+  expiry_days: 30
+  key: "walter_ai_signature"
+  name: "walter_ai_cookie"

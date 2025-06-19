@@ -1,0 +1,309 @@
+import streamlit as st
+import re
+import os
+from PIL import Image
+from langchain_openai import ChatOpenAI
+from langchain.prompts import PromptTemplate
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
+from memory import (
+    load_learner_profile,
+    save_learner_profile,
+    save_memory,
+    mark_lesson_complete,
+    get_completed_lessons
+)
+
+# Constants
+CHALLENGE_MARKERS = {
+    "mcq": ("MCQ:", "### Multiple-Choice Challenge"),
+    "code": ("CODE CHALLENGE:", "### Code Challenge")
+}
+
+# Page Config
+st.set_page_config(page_title="📘 Lesson Viewer", layout="wide")
+
+# --- Helper Functions ---
+def safe_username(raw_username):
+    """Sanitize username for filesystem use"""
+    return raw_username.replace("@", "_at_").replace(".", "_dot_")
+
+def safe_get(dict_obj, keys, default=None):
+    """Safely get nested dictionary values"""
+    for key in keys:
+        if isinstance(dict_obj, dict) and key in dict_obj:
+            dict_obj = dict_obj[key]
+        else:
+            return default
+    return dict_obj
+
+def get_completion_status(memory_folder, topic):
+    """Standardized completion check"""
+    completed = get_completed_lessons(memory_folder)
+    return topic in completed
+
+# --- State Management ---
+def init_lesson_state():
+    """Initialize required session state variables"""
+    if "lesson_state" not in st.session_state:
+        st.session_state.lesson_state = {
+            "generated": False,
+            "submitted": False,
+            "feedback": None,
+            "attempts": 0
+        }
+
+def validate_lesson_state(profile):
+    """Ensure all required state exists"""
+    required = {
+        "track_selected": next(iter(profile.get("tracks", {})), 
+        "lesson_topic": profile.get("current_topic"),
+        "username": None
+    }
+    
+    for key, default in required.items():
+        if key not in st.session_state:
+            st.session_state[key] = default
+
+# --- Content Generation ---
+@st.cache_resource
+def get_retriever():
+    """Cached vector store retriever"""
+    return Chroma(
+        persist_directory="vector_store_openai",
+        embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002")
+    ).as_retriever(search_kwargs={"k": 15})
+
+def generate_lesson_content(profile, track, topic, lesson_index, total_lessons):
+    """Generate lesson content with caching"""
+    # Build query with learner context
+    query_string = f"{track} | {profile.get('comfort_level', '')} | {topic}"
+    
+    # Retrieve relevant docs
+    retrieved_docs = get_retriever().get_relevant_documents(query_string)[:6]
+    retrieved_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
+    
+    # Lesson generation prompt
+    lesson_prompt = PromptTemplate(
+        input_variables=["track", "lesson", "context"],
+        template="""
+        Generate a technical lesson about {lesson} for {track} track.
+        Include: objectives, explanations, examples, and one challenge.
+        Use this context: {context}
+        """
+    )
+    
+    llm = ChatOpenAI(model="gpt-4", temperature=0.7)
+    return (lesson_prompt | llm).invoke({
+        "track": track,
+        "lesson": topic,
+        "context": retrieved_context
+    }).content
+
+# --- Challenge Handling ---
+def parse_challenges(content):
+    """Extract challenges from lesson content"""
+    challenges = {}
+    for key, (marker, _) in CHALLENGE_MARKERS.items():
+        if marker in content:
+            challenges[key] = content.split(marker)[1].split("\n\n")[0].strip()
+    return challenges
+
+def generate_feedback(response, challenge_type, context):
+    """Generate structured feedback"""
+    feedback_prompt = PromptTemplate(
+        input_variables=["response", "type", "context"],
+        template="""
+        Provide feedback on this {type} response:
+        {response}
+        
+        Context: {context}
+        Focus on accuracy, completeness, and suggest improvements.
+        """
+    )
+    
+    llm = ChatOpenAI(model="gpt-4", temperature=0.3)
+    return (feedback_prompt | llm).invoke({
+        "response": response,
+        "type": challenge_type,
+        "context": context
+    }).content
+
+# --- UI Components ---
+def render_header():
+    """Render page header"""
+    logo = Image.open("static/wsda-logo.png")
+    col1, col2 = st.columns([1, 10])
+    with col1:
+        st.image(logo, width=40)
+    with col2:
+        st.markdown("<div style='padding-top: 12px; font-weight: bold;'>Walter Shields Data Academy</div>", 
+                   unsafe_allow_html=True)
+
+def render_sidebar(profile, track, topic, memory_folder):
+    """Render lesson navigation sidebar"""
+    st.sidebar.title("📚 Lesson Navigation")
+    
+    # Back to Dashboard
+    if st.sidebar.button("🔙 Back to Dashboard"):
+        st.switch_page("app.py")
+    
+    # Track selection
+    tracks = profile.get("tracks", {})
+    current_track = st.sidebar.selectbox(
+        "Select Track",
+        list(tracks.keys()),
+        index=list(tracks.keys()).index(track)
+    
+    # Lesson progress
+    topics = tracks.get(current_track, [])
+    completed = get_completed_lessons(memory_folder)
+    
+    st.sidebar.markdown(f"**Progress:** {len([t for t in topics if t in completed])}/{len(topics)}")
+    
+    # Lesson selection
+    selected_topic = st.sidebar.selectbox(
+        "Select Lesson",
+        topics,
+        index=topics.index(topic))
+    
+    if selected_topic != topic:
+        st.session_state.lesson_topic = selected_topic
+        st.session_state.lesson_state = {"generated": False}
+        st.rerun()
+
+def render_lesson_content(content):
+    """Display lesson content with proper formatting"""
+    st.markdown(content, unsafe_allow_html=True)
+    st.markdown("""
+        <script>
+            setTimeout(() => window.scrollTo(0, 0), 100);
+        </script>
+    """, unsafe_allow_html=True)
+
+def render_challenge(challenges):
+    """Render challenge interface based on type"""
+    if not challenges:
+        st.text_area("Reflect on what you learned:", key="generic_response")
+        return "generic", st.session_state.generic_response
+    
+    for challenge_type, (_, title) in CHALLENGE_MARKERS.items():
+        if challenge_type in challenges:
+            st.markdown(title)
+            st.info(challenges[challenge_type])
+            
+            if challenge_type == "code":
+                response = st.text_area("Your code:", height=300, key="code_response")
+            else:
+                response = st.text_input("Your answer:", key="mcq_response")
+            
+            return challenge_type, response
+
+# --- Main Flow ---
+def main():
+    # Initialization
+    init_lesson_state()
+    render_header()
+    
+    # Authentication check
+    if "username" not in st.session_state:
+        st.warning("⚠️ Please sign in first.")
+        st.stop()
+    
+    # Load profile
+    username = safe_username(st.session_state.username)
+    memory_folder = f"walter_memory/{username}"
+    profile_path = f"{memory_folder}/{username}_profile.json"
+    os.makedirs(memory_folder, exist_ok=True)
+    
+    profile = load_learner_profile(profile_path)
+    if not profile:
+        st.error("⚠️ No learner profile found.")
+        st.stop()
+    
+    # Validate state
+    validate_lesson_state(profile)
+    track = st.session_state.track_selected
+    topic = st.session_state.lesson_topic
+    
+    # Ensure track exists
+    if track not in profile.get("tracks", {}):
+        st.error(f"Track '{track}' not found.")
+        st.stop()
+    
+    # Initialize track lessons if missing
+    if "track_lessons" not in profile:
+        profile["track_lessons"] = {}
+    if track not in profile["track_lessons"]:
+        profile["track_lessons"][track] = [None] * len(profile["tracks"][track])
+        save_learner_profile(profile, profile_path)
+    
+    # Render sidebar
+    render_sidebar(profile, track, topic, memory_folder)
+    
+    # Generate/load lesson content
+    lesson_index = profile["tracks"][track].index(topic)
+    if not profile["track_lessons"][track][lesson_index]:
+        with st.spinner(f"Generating lesson: {topic}"):
+            content = generate_lesson_content(
+                profile, track, topic,
+                lesson_index, len(profile["tracks"][track])
+            profile["track_lessons"][track][lesson_index] = content
+            save_learner_profile(profile, profile_path)
+    
+    content = profile["track_lessons"][track][lesson_index]
+    
+    # Display lesson
+    render_lesson_content(content)
+    
+    # Handle challenges
+    challenges = parse_challenges(content)
+    challenge_type, response = render_challenge(challenges)
+    
+    # Submission handling
+    if st.button("📤 Submit"):
+        if not response.strip():
+            st.error("Please attempt the challenge before submitting.")
+            st.stop()
+        
+        with st.spinner("Generating feedback..."):
+            feedback = generate_feedback(
+                response, challenge_type, 
+                f"Lesson: {topic}\nTrack: {track}"
+            )
+            
+            st.session_state.lesson_state.update({
+                "feedback": feedback,
+                "submitted": True,
+                "attempts": st.session_state.lesson_state["attempts"] + 1
+            })
+            
+            save_memory(feedback, {
+                "topic": topic,
+                "type": "feedback",
+                "challenge": challenge_type
+            }, memory_folder)
+            
+            mark_lesson_complete(topic, memory_folder)
+    
+    # Show feedback if available
+    if st.session_state.lesson_state.get("feedback"):
+        st.markdown("### Feedback")
+        st.info(st.session_state.lesson_state["feedback"])
+        
+        # Navigation to next lesson
+        topics = profile["tracks"][track]
+        completed = get_completed_lessons(memory_folder)
+        remaining = [t for t in topics if t not in completed]
+        
+        if remaining:
+            if st.button("⏭️ Next Lesson"):
+                st.session_state.lesson_topic = remaining[0]
+                st.session_state.lesson_state = {"generated": False}
+                st.rerun()
+        else:
+            st.balloons()
+            st.success("🎉 You've completed this track!")
+
+if __name__ == "__main__":
+    main()
