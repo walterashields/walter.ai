@@ -13,3 +13,4 @@ vector_store_openai/
 =======
 walter_memory/chroma.sqlite3
 >>>>>>> 2a874995 (Updated app.py with OpenAI fallback for lesson generation)
+.env
