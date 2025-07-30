@@ -59,7 +59,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # === LOGIN SECTION (Always Run)
-name, auth_status, username = authenticator.login("Login", "main")
+login_result = authenticator.login(location="main")
+
+if isinstance(login_result, tuple) and len(login_result) == 3:
+    name, auth_status, username = login_result
+else:
+    name = auth_status = username = None
+
 
 
 # 👇 Step 1: User is authenticated, set session vars
@@ -711,11 +717,11 @@ if st.session_state.get("username") == "walterashields@gmail.com":
 
 
 completed = get_completed_lessons(memory_folder)
-current_lesson = st.session_state.get("lesson_topic", profile.get("current_topic"))
+current_lesson = st.session_state.get("lesson_topic", profile.get("current_topic") if profile else None)
 st.session_state["lesson_topic"] = current_lesson
 
 # === Track-aware UI ===
-if "tracks" not in profile or not profile["tracks"]:
+if not profile or "tracks" not in profile or not profile["tracks"]:
     st.warning("⚠️ Your profile is missing learning tracks. Please restart your onboarding to regenerate a complete curriculum.")
     st.stop()
 

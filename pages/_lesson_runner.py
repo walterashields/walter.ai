@@ -314,7 +314,7 @@ if lesson_raw is None or lesson_raw.strip() == "":
         retrieved_docs = ranked_docs[:6]
         retrieved_context = "\n\n".join([doc.page_content for doc in retrieved_docs])
 
-        from langchain.chat_models import ChatOpenAI
+        from langchain_openai import ChatOpenAI
         from langchain.prompts import PromptTemplate
 
 
